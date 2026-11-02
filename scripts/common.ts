@@ -24,6 +24,13 @@ if (process.env.UPSTREAM_TAG) {
 }
 if (process.env.TEST_VERSION)
   config.publication.version = process.env.TEST_VERSION;
+// Keep metadata bytes identical for default and explicitly selected tags.
+config.upstream = {
+  repository: config.upstream.repository,
+  tag: config.upstream.tag,
+  version: config.upstream.version,
+  sha: config.upstream.sha,
+};
 export const readJson = (file: string) =>
   JSON.parse(readFileSync(file, "utf8"));
 export function writeJson(file: string, value: unknown): void {

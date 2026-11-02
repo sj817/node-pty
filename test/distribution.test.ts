@@ -3,7 +3,28 @@ import assert from "node:assert/strict";
 import { adaptUpstream, compileEsm } from "../scripts/adapt.ts";
 import { classifyNativeSource } from "../scripts/history.ts";
 import { validateDeviceProof } from "../scripts/proof.ts";
-import { config } from "../scripts/common.ts";
+import { buildKey, config, root } from "../scripts/common.ts";
+import { execFileSync } from "node:child_process";
+
+test("default and explicit upstream selection produce identical build metadata", () => {
+  const output = execFileSync(
+    process.execPath,
+    [
+      "--input-type=module",
+      "-e",
+      "import {buildKey,config} from './scripts/common.ts'; console.log(JSON.stringify({key:buildKey(),source:config.upstream}))",
+    ],
+    {
+      cwd: root,
+      env: { ...process.env, UPSTREAM_TAG: config.upstream.tag },
+      encoding: "utf8",
+    },
+  );
+  assert.equal(
+    output.trim(),
+    JSON.stringify({ key: buildKey(), source: config.upstream }),
+  );
+});
 
 test("upstream module adaptation keeps ESM imports and real helper paths", () => {
   const output = adaptUpstream(
