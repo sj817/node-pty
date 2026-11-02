@@ -1,4 +1,4 @@
-import { config, github, githubPages, writeJson, root } from './common.mjs';
+import { config, github, githubPages, writeJson, root } from './common.ts';
 import { pathToFileURL } from 'node:url';
 import { join } from 'node:path';
 

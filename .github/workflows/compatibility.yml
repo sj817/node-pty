@@ -45,7 +45,7 @@ jobs:
         with:
           node-version: '24.22.1'
       - run: npm ci --ignore-scripts
-      - run: node scripts/retest.mjs
+      - run: node scripts/retest.ts
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ inputs.release }}

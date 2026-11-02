@@ -4,15 +4,16 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "test": "node --test test/*.test.mjs",
-    "build": "node scripts/build.mjs",
-    "verify": "node scripts/verify.mjs",
-    "gate": "node scripts/gate.mjs",
-    "detect": "node scripts/detect.mjs",
-    "publish:dry": "node scripts/publish.mjs --dry-run",
-    "trust:prepare": "node scripts/trust.mjs"
+    "test": "node --test test/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "build": "node scripts/build.ts",
+    "verify": "node scripts/verify.ts",
+    "gate": "node scripts/gate.ts",
+    "detect": "node scripts/detect.ts",
+    "publish:dry": "node scripts/publish.ts --dry-run",
+    "trust:prepare": "node scripts/trust.ts"
   },
-  "engines": { "node": ">=22.14.0" },
+  "engines": { "node": ">=24.22.1" },
   "devDependencies": {
     "@electron/asar": "4.3.1",
     "@types/node": "22.19.0",

@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { config, root, readJson, run, integrity, jsonRequest, version, buildKey } from './common.mjs';
-import { gate } from './gate.mjs';
+import { config, root, readJson, run, integrity, jsonRequest, version, buildKey } from './common.ts';
+import { gate } from './gate.ts';
 
 export function publishPlan(packages, existing, primary) {
   const conflicts = packages.filter(pkg => existing[pkg.name] && (existing[pkg.name].dist?.integrity !== pkg.integrity || existing[pkg.name].nodePty?.buildKey !== pkg.buildKey));
@@ -13,9 +13,13 @@ export async function publishPackages(packages, adapter, primary, tag, dryRun = 
   const existing = Object.fromEntries(await Promise.all(packages.map(async pkg => [pkg.name, await adapter.get(pkg)])));
   const plan = publishPlan(packages, existing, primary);
   if (dryRun) return plan;
-  for (const pkg of plan) {
-    if (pkg.action === 'publish') await adapter.publish(pkg);
-    await adapter.confirm(pkg);
+  const children = plan.filter(pkg => pkg.name !== primary);
+  const main = plan.filter(pkg => pkg.name === primary);
+  for (const group of [children, main]) {
+    // Upload a group first, then wait for every registry tarball to be readable.
+    // The primary is never published while a required child is still pending.
+    for (const pkg of group) if (pkg.action === 'publish') await adapter.publish(pkg);
+    for (const pkg of group) await adapter.confirm(pkg);
   }
   // Main package is tagged last. A retry verifies all immutable bytes first.
   for (const pkg of plan) await adapter.tag(pkg, tag);
@@ -36,21 +40,24 @@ async function main() {
       run('npm', ['publish', join(dir, pkg.filename), '--ignore-scripts', '--access', 'public', '--provenance', '--tag', 'candidate', '--registry', registry]);
     },
     confirm: async pkg => {
-      for (let attempt = 0; attempt < 12; attempt++) {
+      for (let attempt = 0; attempt < 72; attempt++) {
         const record = await adapter.get(pkg);
         if (record) {
           publishPlan([pkg], { [pkg.name]: record }, config.package);
-          const response = await fetch(record.dist.tarball, { signal: AbortSignal.timeout(120000) });
-          if (!response.ok) throw new Error(`Tarball unavailable ${pkg.name}`);
-          const { createHash } = await import('node:crypto');
-          const actual = 'sha512-' + createHash('sha512').update(Buffer.from(await response.arrayBuffer())).digest('base64');
-          if (actual !== pkg.integrity) throw new Error(`Registry tarball conflict ${pkg.name}`);
-          if (!record.dist.attestations?.url) throw new Error(`Missing npm provenance for ${pkg.name}@${pkg.version}`);
-          return;
+          if (record.dist.attestations?.url) {
+            const response = await fetch(record.dist.tarball, { signal: AbortSignal.timeout(120000) });
+            if (response.ok) {
+              const { createHash } = await import('node:crypto');
+              const actual = 'sha512-' + createHash('sha512').update(Buffer.from(await response.arrayBuffer())).digest('base64');
+              if (actual !== pkg.integrity) throw new Error(`Registry tarball conflict ${pkg.name}`);
+              return;
+            }
+            if (response.status !== 404) throw new Error(`Registry tarball HTTP ${response.status} for ${pkg.name}`);
+          }
         }
         await new Promise(resolve => setTimeout(resolve, 5000));
       }
-      throw new Error(`Registry did not expose ${pkg.name}@${pkg.version}`);
+      throw new Error(`Registry did not expose a readable attested tarball for ${pkg.name}@${pkg.version}`);
     },
     tag: async (pkg, tag) => {
       const tags = await jsonRequest(`${registry}/-/package/${encodeURIComponent(pkg.name)}/dist-tags`);

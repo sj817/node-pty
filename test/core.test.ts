@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
-import { versionOf, hash } from '../scripts/common.mjs';
-import { evaluateChecks } from '../scripts/gate.mjs';
-import { publishPackages, publishPlan } from '../scripts/publish.mjs';
-import { shouldTest, latestPerMajor } from '../scripts/detect.mjs';
+import { versionOf, hash } from '../scripts/common.ts';
+import { evaluateChecks } from '../scripts/gate.ts';
+import { publishPackages, publishPlan } from '../scripts/publish.ts';
+import { shouldTest, latestPerMajor } from '../scripts/detect.ts';
 const require = createRequire(import.meta.url);
-const { platformId, unpacked } = require('../runtime/loader.cjs');
+const { platformId, unpacked } = require('../runtime/loader.cts');
 
 test('runtime checks deduplicate successful and in-flight fingerprints, retry failures', () => {
   assert.equal(shouldTest('abc', [{ display_title: 'abc', status: 'queued' }]), false);
@@ -44,7 +44,7 @@ test('platform selection follows npm vocabulary and identifies libc', () => {
 });
 test('partial publish retries immutable packages and never exposes main before children', async () => {
   const packages = ['main', 'linux', 'windows'].map(name => ({ name, version: '1.0.0', buildKey: 'key', integrity: hash(name) }));
-  const existing = {};
+  const existing: Record<string, any> = {};
   const calls = [];
   let shouldFail = true;
   const adapter = {
@@ -68,4 +68,21 @@ test('partial publish retries immutable packages and never exposes main before c
   await publishPackages(packages, adapter, 'main', 'latest');
   assert.equal(calls.filter(name => name === 'main').length, count);
   assert.throws(() => publishPlan(packages, { main: { dist: { integrity: 'wrong' } } }, 'main'), /conflict/);
+});
+
+test('a child awaiting registry availability blocks the primary package', async () => {
+  const packages = ['main', 'linux'].map(name => ({ name, version: '1.0.0', buildKey: 'key', integrity: hash(name) }));
+  const published = new Map<string, object>();
+  let ready = false;
+  const adapter = {
+    get: async pkg => published.get(pkg.name) || null,
+    publish: async pkg => { published.set(pkg.name, { dist: { integrity: pkg.integrity }, nodePty: { buildKey: pkg.buildKey } }); },
+    confirm: async pkg => { if (pkg.name === 'linux' && !ready) throw new Error('tarball still processing'); },
+    tag: async () => {}
+  };
+  await assert.rejects(publishPackages(packages, adapter, 'main', 'latest'), /still processing/);
+  assert.equal(published.has('main'), false);
+  ready = true;
+  await publishPackages(packages, adapter, 'main', 'latest');
+  assert.equal(published.has('main'), true);
 });

@@ -4,7 +4,8 @@ import { join, resolve } from 'node:path';
 import { cpSync, mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { createPackageWithOptions } from '@electron/asar';
-import { config, root, run, readJson, writeJson, integrity, currentPlatform, version } from './common.mjs';
+import ts from 'typescript';
+import { config, root, run, readJson, writeJson, integrity, currentPlatform, version } from './common.ts';
 
 const platform = currentPlatform();
 const out = resolve(process.env.ARTIFACT_DIR || join(root, 'dist', platform.id));
@@ -13,14 +14,14 @@ if (build.platform !== platform.id || build.version !== version) throw new Error
 for (const pkg of build.packages) if (integrity(join(out, pkg.filename)) !== pkg.integrity) throw new Error(`Corrupt tarball ${pkg.filename}`);
 const work = join(root, '.work', 'verify', platform.id);
 mkdirSync(work, { recursive: true });
-const server = fork(join(root, 'test/registry.mjs'), [out], { stdio: ['ignore', 'inherit', 'inherit', 'ipc'] });
+const server = fork(join(root, 'test/registry.ts'), [out], { stdio: ['ignore', 'inherit', 'inherit', 'ipc'] });
 const [{ port }] = await once(server, 'message');
 const registry = `http://127.0.0.1:${port}`;
 const results = [];
 const runtimeConfig = process.env.RUNTIME_MATRIX ? JSON.parse(process.env.RUNTIME_MATRIX) : config.runtimes;
 
 function execute(command, args, options = {}) {
-  return new Promise((resolvePromise, reject) => {
+  return new Promise<void>((resolvePromise, reject) => {
     const child = spawn(command, args, { cwd: work, stdio: 'inherit', ...options });
     const timer = setTimeout(() => { child.kill(); reject(new Error(`Timed out ${command}`)); }, 180000);
     child.on('error', error => { clearTimeout(timer); reject(error); });
@@ -32,7 +33,9 @@ function project(name) {
   if (existsSync(dir)) throw new Error(`Verification directory already exists: ${dir}. Use a fresh workspace for verification.`);
   mkdirSync(dir, { recursive: true });
   writeJson(join(dir, 'package.json'), { name: 'pty-isolated-smoke', version: '1.0.0', private: true, main: 'smoke.cjs', dependencies: { [config.package]: version } });
-  cpSync(join(root, 'test/smoke.cjs'), join(dir, 'smoke.cjs'));
+  const smokeSource = readFileSync(join(root, 'test/smoke.cts'), 'utf8');
+  const smokeJs = ts.transpileModule(smokeSource, { fileName: 'smoke.cts', compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
+  writeFileSync(join(dir, 'smoke.cjs'), smokeJs);
   return dir;
 }
 try {
@@ -73,7 +76,7 @@ try {
     run('npm', ['install', '--prefix', runtime, '--no-audit', '--no-fund', `electron@${electronVersion}`]);
     const require = createRequire(join(runtime, 'package.json'));
     const executable = require('electron');
-    const env = { ...process.env, EXPECT_ELECTRON: '1' };
+    const env: NodeJS.ProcessEnv = { ...process.env, EXPECT_ELECTRON: '1' };
     delete env.ELECTRON_RUN_AS_NODE;
     for (const app of [dir, asar]) {
       const args = [app, '--no-sandbox', '--disable-gpu'];

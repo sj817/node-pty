@@ -1,6 +1,6 @@
 import { mkdirSync, cpSync } from 'node:fs';
 import { join } from 'node:path';
-import { config, root, run, currentPlatform, readJson, writeJson, packageName, version } from './common.mjs';
+import { config, root, run, currentPlatform, readJson, writeJson, packageName, version } from './common.ts';
 const tag = process.env.RELEASE_TAG;
 if (!/^v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$/.test(tag)) throw new Error('Invalid release tag');
 const platform = currentPlatform();

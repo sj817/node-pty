@@ -2,13 +2,15 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-function fail(code, message, cause) {
-  const error = new Error(`@qwqo/node-pty: ${message}`, { cause });
+type RuntimeReport = { header?: { glibcVersionRuntime?: string }; sharedObjects?: string[] };
+
+function fail(code: string, message: string, cause?: unknown): never {
+  const error = new Error(`@qwqo/node-pty: ${message}`, { cause }) as Error & { code: string };
   error.code = code;
   throw error;
 }
 
-function platformId(platform, arch, report) {
+function platformId(platform: string, arch: string, report?: RuntimeReport): string {
   if (!['win32', 'darwin', 'linux'].includes(platform) || !['x64', 'arm64'].includes(arch)) {
     fail('ERR_PTY_PLATFORM', `unsupported platform ${platform}-${arch}. See the published compatibility matrix.`);
   }
@@ -19,13 +21,13 @@ function platformId(platform, arch, report) {
   fail('ERR_PTY_LIBC', 'cannot identify Linux libc. A glibc runtime or an explicitly supported musl build is required.');
 }
 
-function unpacked(file) {
+function unpacked(file: string): string {
   return file.replace(/([\\/][^\\/]+\.asar)(?=[\\/])/g, '$1.unpacked');
 }
 
-function loadNativeModule(name) {
+function loadNativeModule(name: string) {
   const manifest = require('./package.json');
-  const report = process.platform === 'linux' ? process.report.getReport() : undefined;
+  const report = process.platform === 'linux' ? process.report.getReport() as RuntimeReport : undefined;
   const id = platformId(process.platform, process.arch, report);
   const expected = `@qwqo/node-pty-${id}`;
   const expectedVersion = manifest.optionalDependencies[expected];

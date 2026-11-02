@@ -9,6 +9,8 @@ npm install @qwqo/node-pty
 pnpm add @qwqo/node-pty
 ```
 
+Check the registry's `latest` tag before installing during the initial rollout. npm assigns `latest` to the first `0.0.1` bootstrap placeholder even when it is published under `bootstrap`; the registry rejects removing `latest`. The placeholder contains no PTY implementation and must not be treated as a usable release. A verified release replaces `latest` only after all platform packages are available.
+
 ```js
 const pty = require('@qwqo/node-pty');
 const terminal = pty.spawn(process.platform === 'win32' ? 'cmd.exe' : '/bin/sh', [], {
@@ -22,7 +24,7 @@ terminal.write('echo hello\r');
 terminal.resize(100, 40);
 ```
 
-Installation works with scripts disabled. Keep optional dependencies enabled. The main package contains JS and types. Native packages contain the native modules and their required helpers. Runtime errors identify the expected package, version, architecture and libc.
+Installation works with scripts disabled. Keep optional dependencies enabled. The source adapters, loader, build and release tools are TypeScript; the main npm package contains compiled CommonJS and type declarations because Node and Electron execute JavaScript. Native packages contain the native modules and their required helpers. Runtime errors identify the expected package, version, architecture and libc.
 
 ## Compatibility
 
@@ -37,7 +39,7 @@ The configured release matrix below becomes supported only after every build and
 | linux-x64-glibc | ubuntu-22.04 | glibc 2.35 |
 | linux-arm64-glibc | ubuntu-22.04-arm | glibc 2.35 |
 
-Every suffix is prefixed with `@qwqo/node-pty-`. Linux packages declare `libc: ["glibc"]`. musl currently has no published support. Minimum targets are build baselines. The hosted test OS is listed separately and does not establish acceptance on every older OS.
+Every suffix is prefixed with `@qwqo/node-pty-`. Linux packages declare `libc: ["glibc"]`. musl and Android currently have no published support because target runtime validation is pending. Minimum targets are build baselines. The hosted test OS is listed separately and does not establish acceptance on every older OS.
 
 The initial runtime matrix is Node 22.23.4, 24.22.1 and 26.13.0, plus Electron 43.8.6, 44.10.1 and 45.2.1. Node >=22.14.0 and Node-API >=8 are required by this distribution. Only the listed runtime versions have scheduled acceptance tests.
 
@@ -79,6 +81,7 @@ The upstream `ci.yml` only runs on pull requests at the pinned tag. Release gate
 
 ```sh
 npm ci --ignore-scripts
+npm run typecheck
 npm test
 npm run gate
 npm run build
@@ -88,9 +91,9 @@ npm run trust:prepare
 
 Builds need the upstream compiler prerequisites, Python and the platform SDK. Verification downloads the configured real Node and Electron runtimes. Linux also needs Xvfb and Electron system libraries. Build and verification use fresh `.work` staging directories. Remove only the relevant generated staging directory before a local retry.
 
-Use the installed `npt` CLI to inspect `.work/trust`, with `--workflow publish.yml --environment npm`. Run `scan` and `sync --placeholder --dry-run` first. After confirming all package targets, execute `sync --placeholder` with `npm_config_tag=bootstrap` in that process's environment. The bootstrap release reserves names for trust setup and must stay outside `latest` and `next`. npm login and account 2FA are performed interactively by the maintainer.
+Use `npt` 0.4.2 or newer to inspect `.work/trust`, with `--workflow publish.yml --environment npm --allow-dist-tag`. Run `scan` and `sync --placeholder --placeholder-tag bootstrap --dry-run` first. After confirming all package targets, execute `sync --placeholder --placeholder-tag bootstrap --allow-dist-tag`. npm's unavoidable first-publish `latest` points to the placeholder until the verified release is promoted; do not advertise it as usable. npm login and account 2FA are performed interactively by the maintainer.
 
-Every package must trust `sj817/node-pty`, workflow `publish.yml`, environment `npm`. Direct publishing and dist-tag management are required. npt 0.4.0 configures direct publishing only, so verify the additional dist-tag permission in npm's current settings before the first release. The workflow uses GitHub-hosted runners, Node 24.22.1, npm 12.2.1, a public repository and `id-token: write` only in the publishing job. Registry credentials are kept outside the repository. The registry's provenance attestations are checked before promotion.
+Every package must trust `sj817/node-pty`, workflow `publish.yml`, environment `npm`. Direct publishing and dist-tag management are required. The workflow uses GitHub-hosted runners, Node 24.22.1, npm 12.2.1, a public repository and `id-token: write` only in the publishing job. Registry credentials are kept outside the repository. The registry's provenance attestations are checked before promotion.
 
 ## License and sources
 

@@ -10,6 +10,7 @@
   "revision": 0,
   "napi": 8,
   "buildNode": "22.23.4",
+  "windowsArmNodeGyp": "12.1.0",
   "publishNode": "24.22.1",
   "publishNpm": "12.2.1",
   "pnpm": "10.20.0",

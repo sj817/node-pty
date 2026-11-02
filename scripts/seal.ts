@@ -1,6 +1,6 @@
 import { mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { config, root, version, github, run, files, hash, readJson } from './common.mjs';
+import { config, root, version, github, run, files, hash, readJson } from './common.ts';
 const tag = `v${version}`;
 const sha = run('git', ['rev-parse', 'HEAD'], { capture: true });
 let release = await github(`repos/${config.repository}/releases/tags/${tag}`, { allow404: true });

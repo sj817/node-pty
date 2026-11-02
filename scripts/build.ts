@@ -1,6 +1,7 @@
 import { cpSync, mkdirSync, readFileSync, writeFileSync, existsSync, chmodSync } from 'node:fs';
 import { join } from 'node:path';
-import { config, root, run, files, hash, integrity, writeJson, readJson, version, buildKey, currentPlatform, packageName } from './common.mjs';
+import ts from 'typescript';
+import { config, root, run, files, hash, integrity, writeJson, readJson, version, buildKey, currentPlatform, packageName } from './common.ts';
 
 const platform = currentPlatform();
 const key = buildKey();
@@ -42,6 +43,8 @@ if (!lock.packages['node_modules/fsevents']) {
 writeJson(join(source, 'package-lock.json'), lock);
 const env = { ...process.env, npm_config_arch: platform.cpu, ...(platform.deploymentTarget ? { MACOSX_DEPLOYMENT_TARGET: platform.deploymentTarget } : {}) };
 run('npm', ['ci', '--ignore-scripts', '--no-audit', '--no-fund'], { cwd: source, env });
+// Upstream's node-gyp 11 cannot detect VS 2026 on windows-11-arm.
+if (platform.id === 'win32-arm64') run('npm', ['install', '--no-save', '--no-package-lock', '--ignore-scripts', '--no-audit', '--no-fund', `node-gyp@${config.windowsArmNodeGyp}`], { cwd: source, env });
 run(process.execPath, [join(source, 'node_modules/node-gyp/bin/node-gyp.js'), 'rebuild', `--target=${config.buildNode}`, `--arch=${platform.cpu}`], { cwd: source, env });
 run('npm', ['run', 'build'], { cwd: source, env });
 run(process.execPath, ['scripts/post-install.js'], { cwd: source, env });
@@ -70,8 +73,11 @@ const utils = readFileSync(utilsPath, 'utf8');
 if (!utils.includes('function loadNativeModule(name)')) throw new Error('Upstream loader changed. Review adapter.');
 // Replace only the exported native loader. All upstream PTY classes stay intact.
 writeFileSync(utilsPath, utils + '\nexports.loadNativeModule = require("../loader.cjs").loadNativeModule;\n');
-cpSync(join(root, 'runtime/loader.cjs'), join(main, 'loader.cjs'));
-cpSync(join(root, 'runtime/entry.cjs'), join(main, 'index.cjs'));
+for (const [input, output] of [['runtime/loader.cts', 'loader.cjs'], ['runtime/entry.cts', 'index.cjs']]) {
+  const sourceText = readFileSync(join(root, input), 'utf8');
+  const compiled = ts.transpileModule(sourceText, { fileName: input, compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } });
+  writeFileSync(join(main, output), compiled.outputText);
+}
 cpSync(join(root, 'README.md'), join(main, 'README.md'));
 const declaration = readFileSync(join(source, 'typings/node-pty.d.ts'), 'utf8').replace(/\r\n/g, '\n');
 if (!declaration.includes("declare module 'node-pty'")) throw new Error('Upstream declarations changed');
@@ -91,7 +97,7 @@ for (const file of binaries) {
 }
 writeJson(join(native, 'package.json'), { ...base, name: packageName(platform), os: [platform.os], cpu: [platform.cpu], ...(platform.libc ? { libc: [platform.libc] } : {}), files: ['bin', 'licenses', 'SOURCE.json'], nodePty: { ...metadata, platform: platform.id, glibc: platform.glibc } });
 writeFileSync(join(native, 'README.md'), `# ${packageName(platform)}\n\nNative assets for ${config.package}@${version}. Install the main package.\n\nMinimum target ${platform.minimumOS}. Built from ${config.upstream.repository}@${config.upstream.sha}.\n`);
-writeJson(join(native, 'SOURCE.json'), { ...metadata, platform, buildNode: config.buildNode, buildEnvironment: { node: process.version, os: process.platform, arch: process.arch, runnerImage: process.env.ImageOS || 'local', runnerImageVersion: process.env.ImageVersion || 'local' }, bindingSha256: hash(binding), files: Object.fromEntries(binaries.map(file => [file, hash(readFileSync(join(native, 'bin', file)))])) });
+writeJson(join(native, 'SOURCE.json'), { ...metadata, platform, buildNode: config.buildNode, nodeGyp: readJson(join(source, 'node_modules/node-gyp/package.json')).version, buildEnvironment: { node: process.version, os: process.platform, arch: process.arch, runnerImage: process.env.ImageOS || 'local', runnerImageVersion: process.env.ImageVersion || 'local' }, bindingSha256: hash(binding), files: Object.fromEntries(binaries.map(file => [file, hash(readFileSync(join(native, 'bin', file)))])) });
 
 const packages = [];
 for (const dir of [native, main]) {

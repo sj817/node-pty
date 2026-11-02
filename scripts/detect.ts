@@ -1,13 +1,13 @@
 import semver from 'semver';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { config, root, github, githubPages, jsonRequest, hash, writeJson } from './common.mjs';
-import { gate, resolveTag } from './gate.mjs';
+import { config, root, github, githubPages, jsonRequest, hash, writeJson } from './common.ts';
+import { gate, resolveTag } from './gate.ts';
 
-export function shouldTest(key, runs) {
+export function shouldTest(key: string, runs: Array<{ display_title: string; status: string; conclusion?: string }>): boolean {
   return !runs.some(run => run.display_title === key && (run.status !== 'completed' || run.conclusion === 'success'));
 }
-export function latestPerMajor(versions, majors) {
+export function latestPerMajor(versions: string[], majors: number[]): string[] {
   return majors.map(major => versions.filter(v => semver.valid(v) && !semver.prerelease(v) && semver.major(v) === major).sort(semver.rcompare)[0]).filter(Boolean);
 }
 async function main() {
@@ -29,9 +29,9 @@ async function main() {
     jsonRequest('https://releases.electronjs.org/releases.json')
   ]);
   const today = new Date().toISOString().slice(0, 10);
-  const majors = Object.entries(schedule).filter(([, s]) => s.start <= today && s.end >= today).map(([name]) => Number(name.slice(1)));
+  const majors = Object.entries(schedule as Record<string, { start: string; end: string }>).filter(([, s]) => s.start <= today && s.end >= today).map(([name]) => Number(name.slice(1)));
   const electronVersions = electronIndex.map(r => r.version).filter(v => semver.valid(v) && !semver.prerelease(v));
-  const electronMajors = [...new Set(electronVersions.map(v => semver.major(v)))].sort((a, b) => b - a).slice(0, 3).sort((a, b) => a - b);
+  const electronMajors = [...new Set<number>(electronVersions.map(v => semver.major(v)))].sort((a, b) => b - a).slice(0, 3).sort((a, b) => a - b);
   const runtimes = { node: latestPerMajor(nodeIndex.map(r => r.version.replace(/^v/, '')), majors), electron: latestPerMajor(electronVersions, electronMajors) };
   const key = `compatibility-${hash(JSON.stringify({ upstream: config.upstream, runtimes })).slice(0, 24)}`;
   const report = { pinned, candidates, configuredRuntimes: config.runtimes, discoveredRuntimes: runtimes, key };

@@ -9,7 +9,7 @@ async function smoke(options = {}) {
   const child = pty.spawn(shell, win ? ['/d', '/q'] : [], { cols: 80, rows: 24, cwd: process.cwd(), env: process.env, ...options });
   let output = '';
   child.onData(data => { output += data; });
-  const exited = new Promise(resolve => child.onExit(resolve));
+  const exited = new Promise<{ exitCode: number }>(resolve => child.onExit(resolve));
   const timeout = setTimeout(() => { try { child.kill(); } finally { console.error(output); process.exit(1); } }, 30000);
   try {
     await delay(300);

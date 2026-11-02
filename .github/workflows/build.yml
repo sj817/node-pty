@@ -23,6 +23,7 @@ jobs:
         with:
           node-version: '24.22.1'
       - run: npm ci --ignore-scripts
+      - run: npm run typecheck
       - run: npm test
       - id: config
         run: node -e "const c=require('./release.json');const fs=require('fs');fs.appendFileSync(process.env.GITHUB_OUTPUT,'matrix='+JSON.stringify({include:c.platforms})+'\nnode='+c.buildNode+'\n')"
@@ -47,7 +48,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ needs.plan.outputs.node }}
+          node-version: '24.22.1'
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -71,7 +72,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ needs.plan.outputs.node }}
+          node-version: '24.22.1'
       - run: npm ci --ignore-scripts
       - uses: actions/download-artifact@v4
         with:
@@ -102,7 +103,7 @@ jobs:
           pattern: verified-*
           path: dist
           merge-multiple: true
-      - run: node scripts/assemble.mjs
+      - run: node scripts/assemble.ts
       - run: npm run publish:dry
         env:
           GH_TOKEN: ${{ github.token }}

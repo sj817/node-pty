@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { mkdirSync, cpSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { config, root, readJson, writeJson, version, buildKey, integrity, packageName, hash } from './common.mjs';
+import { config, root, readJson, writeJson, version, buildKey, integrity, packageName, hash } from './common.ts';
 
 const key = buildKey();
 const dir = join(root, 'dist/bundle');

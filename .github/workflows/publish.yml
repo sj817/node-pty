@@ -74,7 +74,7 @@ jobs:
           path: dist/bundle
           run-id: ${{ inputs.run_id }}
           github-token: ${{ github.token }}
-      - run: node scripts/seal.mjs
+      - run: node scripts/seal.ts
         env:
           GH_TOKEN: ${{ github.token }}
   publish:
@@ -93,6 +93,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24.22.1'
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
       - run: npm install --global npm@12.2.1
       - run: npm ci --ignore-scripts
       - uses: actions/download-artifact@v4
@@ -101,7 +103,7 @@ jobs:
           path: dist/bundle
           run-id: ${{ inputs.run_id }}
           github-token: ${{ github.token }}
-      - run: node scripts/publish.mjs
+      - run: node scripts/publish.ts
         env:
           GH_TOKEN: ${{ github.token }}
   finalize:
@@ -117,6 +119,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24.22.1'
-      - run: node scripts/seal.mjs --finalize
+      - run: node scripts/seal.ts --finalize
         env:
           GH_TOKEN: ${{ github.token }}
