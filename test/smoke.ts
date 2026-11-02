@@ -23,8 +23,12 @@ async function smoke(options = {}) {
   child.onData((data) => {
     output += data;
   });
+  let hasExited = false;
   const exited = new Promise<{ exitCode: number }>((resolve) =>
-    child.onExit(resolve),
+    child.onExit((event) => {
+      hasExited = true;
+      resolve(event);
+    }),
   );
   const timeout = setTimeout(() => {
     try {
@@ -69,10 +73,12 @@ async function smoke(options = {}) {
     throw new Error(`Shell ${child.pid} survived exit`);
   } finally {
     clearTimeout(timeout);
-    try {
-      child.kill();
-    } catch {
-      /* Already exited. */
+    if (!hasExited) {
+      try {
+        child.kill();
+      } catch {
+        /* The shell may exit while cleanup is starting. */
+      }
     }
   }
 }
