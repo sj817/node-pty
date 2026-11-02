@@ -1,0 +1,14 @@
+import { mkdirSync, cpSync } from 'node:fs';
+import { join } from 'node:path';
+import { config, root, run, currentPlatform, readJson, writeJson, packageName, version } from './common.mjs';
+const tag = process.env.RELEASE_TAG;
+if (!/^v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$/.test(tag)) throw new Error('Invalid release tag');
+const platform = currentPlatform();
+const dir = join(root, 'dist', platform.id);
+mkdirSync(dir, { recursive: true });
+run('gh', ['release', 'download', tag, '--repo', config.repository, '--pattern', 'release-manifest.json', '--dir', dir]);
+const manifest = readJson(join(dir, 'release-manifest.json'));
+if (manifest.version !== version || manifest.upstream.sha !== config.upstream.sha) throw new Error('Retest requires the matching pinned source configuration');
+const packages = manifest.packages.filter(p => [config.package, packageName(platform)].includes(p.name));
+for (const pkg of packages) run('gh', ['release', 'download', tag, '--repo', config.repository, '--pattern', pkg.filename, '--dir', dir]);
+writeJson(join(dir, 'build.json'), { platform: platform.id, version, buildKey: manifest.buildKey, packages });

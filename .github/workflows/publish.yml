@@ -1,0 +1,122 @@
+name: Publish verified release
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Successful Build and verify tarballs run ID
+        required: true
+        type: string
+      dry_run:
+        description: Validate without publishing
+        type: boolean
+        default: true
+permissions:
+  contents: read
+concurrency:
+  group: npm-publication
+  cancel-in-progress: false
+jobs:
+  prepare:
+    runs-on: ubuntu-22.04
+    outputs:
+      sha: ${{ steps.run.outputs.sha }}
+    steps:
+      - id: run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ inputs.run_id }}
+          REPO: ${{ github.repository }}
+        run: |
+          [[ "$RUN_ID" =~ ^[0-9]+$ ]] || exit 1
+          gh api "repos/$REPO/actions/runs/$RUN_ID" > run.json
+          jq -e '.conclusion == "success" and .head_branch == "main" and (.event == "push" or .event == "workflow_dispatch") and .path == ".github/workflows/build.yml"' run.json
+          echo "sha=$(jq -r .head_sha run.json)" >> "$GITHUB_OUTPUT"
+  validate:
+    needs: prepare
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.22.1'
+      - run: npm ci --ignore-scripts
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-bundle
+          path: dist/bundle
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
+      - run: npm run publish:dry
+        env:
+          GH_TOKEN: ${{ github.token }}
+  seal:
+    if: ${{ !inputs.dry_run }}
+    needs: [prepare, validate]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.22.1'
+      - run: npm ci --ignore-scripts
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-bundle
+          path: dist/bundle
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
+      - run: node scripts/seal.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
+  publish:
+    needs: [prepare, seal]
+    runs-on: ubuntu-22.04
+    environment: npm
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.22.1'
+      - run: npm install --global npm@12.2.1
+      - run: npm ci --ignore-scripts
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-bundle
+          path: dist/bundle
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
+      - run: node scripts/publish.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
+  finalize:
+    needs: [prepare, publish]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.22.1'
+      - run: node scripts/seal.mjs --finalize
+        env:
+          GH_TOKEN: ${{ github.token }}

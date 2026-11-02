@@ -1,0 +1,114 @@
+name: Build and verify tarballs
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  plan:
+    runs-on: ubuntu-22.04
+    outputs:
+      matrix: ${{ steps.config.outputs.matrix }}
+      node: ${{ steps.config.outputs.node }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.22.1'
+      - run: npm ci --ignore-scripts
+      - run: npm test
+      - id: config
+        run: node -e "const c=require('./release.json');const fs=require('fs');fs.appendFileSync(process.env.GITHUB_OUTPUT,'matrix='+JSON.stringify({include:c.platforms})+'\nnode='+c.buildNode+'\n')"
+      - run: npm run gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: upstream-gate
+          path: dist/gate.json
+  build:
+    needs: plan
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ needs.plan.outputs.node }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.id }}
+          path: dist/${{ matrix.id }}/
+          if-no-files-found: error
+  verify:
+    needs: [plan, build]
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ needs.plan.outputs.node }}
+      - run: npm ci --ignore-scripts
+      - uses: actions/download-artifact@v4
+        with:
+          name: build-${{ matrix.id }}
+          path: dist/${{ matrix.id }}
+      - name: Electron system libraries
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y xvfb libgtk-3-0 libnss3 libasound2 libgbm1
+      - run: npm run verify
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verified-${{ matrix.id }}
+          path: dist/
+          if-no-files-found: error
+  assemble:
+    needs: verify
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.22.1'
+      - run: npm ci --ignore-scripts
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: verified-*
+          path: dist
+          merge-multiple: true
+      - run: node scripts/assemble.mjs
+      - run: npm run publish:dry
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-bundle
+          path: dist/bundle/
+          if-no-files-found: error
+          retention-days: 90

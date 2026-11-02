@@ -1,0 +1,39 @@
+name: Track upstream and runtimes
+on:
+  schedule:
+    - cron: '23 6 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: write
+concurrency:
+  group: upstream-detection
+  cancel-in-progress: false
+jobs:
+  detect:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.22.1'
+      - run: npm ci --ignore-scripts
+      - run: npm run detect
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DISPATCH_COMPATIBILITY: '1'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: detection
+          path: dist/detection.json
+      - name: Show pending states
+        if: always()
+        run: |
+          if test -f dist/detection.json; then
+            echo '```json' >> "$GITHUB_STEP_SUMMARY"
+            cat dist/detection.json >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
