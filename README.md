@@ -45,7 +45,7 @@ The pinned source registers each native module with `NODE_API_MODULE` and uses N
 
 ## Electron
 
-Use the package from Electron's main process. Configure the packager to unpack the complete main and platform packages, including JS worker/fork agents, `.node` files, helper executables and DLLs. For electron-builder an appropriate `asarUnpack` pattern is `node_modules/@qwqo/node-pty{,*/**}` with the main package directory included explicitly if your glob implementation treats braces differently. A straightforward configuration is
+Use the package from Electron's main process. Configure the packager to unpack the complete main and platform packages, including JS worker/fork agents, `.node` files, helper executables and DLLs. For electron-builder use
 
 ```json
 {

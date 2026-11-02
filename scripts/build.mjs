@@ -18,12 +18,28 @@ run('git', ['checkout', '--detach', config.upstream.sha], { cwd: source });
 if (run('git', ['rev-parse', 'HEAD'], { cwd: source, capture: true }) !== config.upstream.sha) throw new Error('Source SHA mismatch');
 if (readJson(join(source, 'package.json')).version !== config.upstream.version) throw new Error('Source version mismatch');
 // Restore only the file modified by this script on retries. Never touch user worktrees.
-run('git', ['restore', '--source=HEAD', '--', 'binding.gyp'], { cwd: source });
+run('git', ['restore', '--source=HEAD', '--', 'binding.gyp', 'src/tsconfig.json', 'package-lock.json'], { cwd: source });
 let binding = readFileSync(join(source, 'binding.gyp'), 'utf8');
 if (!binding.includes("'target_defaults': {")) throw new Error('Upstream build structure changed. Review adapter.');
 binding = binding.replace("'target_defaults': {", `'target_defaults': {\n    'defines': ['NAPI_VERSION=${config.napi}'],`);
 if (platform.os === 'darwin') binding = binding.replace('"MACOSX_DEPLOYMENT_TARGET":"10.7"', `"MACOSX_DEPLOYMENT_TARGET":"${platform.deploymentTarget}"`);
 writeFileSync(join(source, 'binding.gyp'), binding);
+const tsconfig = readJson(join(source, 'src/tsconfig.json'));
+tsconfig.compilerOptions.newLine = 'lf';
+writeJson(join(source, 'src/tsconfig.json'), tsconfig);
+// Upstream 1.1.0 omitted chokidar's optional macOS dependency from its lockfile.
+// Add its registry-verified immutable entry so modern npm ci can validate the lock.
+const lock = readJson(join(source, 'package-lock.json'));
+if (!lock.packages['node_modules/fsevents']) {
+  lock.packages['node_modules/fsevents'] = {
+    version: '2.3.3',
+    resolved: 'https://registry.npmjs.org/fsevents/-/fsevents-2.3.3.tgz',
+    integrity: 'sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==',
+    dev: true, optional: true, hasInstallScript: true, os: ['darwin'],
+    engines: { node: '^8.16.0 || ^10.6.0 || >=11.0.0' }
+  };
+}
+writeJson(join(source, 'package-lock.json'), lock);
 const env = { ...process.env, npm_config_arch: platform.cpu, ...(platform.deploymentTarget ? { MACOSX_DEPLOYMENT_TARGET: platform.deploymentTarget } : {}) };
 run('npm', ['ci', '--ignore-scripts', '--no-audit', '--no-fund'], { cwd: source, env });
 run(process.execPath, [join(source, 'node_modules/node-gyp/bin/node-gyp.js'), 'rebuild', `--target=${config.buildNode}`, `--arch=${platform.cpu}`], { cwd: source, env });
@@ -57,7 +73,7 @@ writeFileSync(utilsPath, utils + '\nexports.loadNativeModule = require("../loade
 cpSync(join(root, 'runtime/loader.cjs'), join(main, 'loader.cjs'));
 cpSync(join(root, 'runtime/entry.cjs'), join(main, 'index.cjs'));
 cpSync(join(root, 'README.md'), join(main, 'README.md'));
-const declaration = readFileSync(join(source, 'typings/node-pty.d.ts'), 'utf8');
+const declaration = readFileSync(join(source, 'typings/node-pty.d.ts'), 'utf8').replace(/\r\n/g, '\n');
 if (!declaration.includes("declare module 'node-pty'")) throw new Error('Upstream declarations changed');
 writeFileSync(join(main, 'index.d.ts'), declaration.replace("declare module 'node-pty'", `declare module '${config.package}'`));
 writeJson(join(main, 'package.json'), { ...base, name: config.package, main: 'index.cjs', types: 'index.d.ts', files: ['lib', 'index.cjs', 'index.d.ts', 'loader.cjs', 'licenses', 'SOURCE.json'], optionalDependencies: Object.fromEntries(config.platforms.map(p => [packageName(p), version])), nodePty: metadata });
