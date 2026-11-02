@@ -22,7 +22,15 @@ function platformId(platform: string, arch: string, report?: RuntimeReport): str
 }
 
 function unpacked(file: string): string {
-  return file.replace(/([\\/][^\\/]+\.asar)(?=[\\/])/g, '$1.unpacked');
+  return file.replace(/([\\/][^\\/]+\.asar)(?!\.unpacked)(?=[\\/])/g, '$1.unpacked');
+}
+
+function nativePaths(metadataPath: string, name: string): { dir: string; file: string } {
+  const physicalDir = unpacked(path.join(path.dirname(metadataPath), 'bin'));
+  // Upstream's macOS helper locator performs the ASAR replacement itself.
+  // Electron may already resolve package.json inside app.asar.unpacked.
+  const dir = physicalDir.replace(/([\\/][^\\/]+\.asar)\.unpacked(?=[\\/])/g, '$1');
+  return { dir, file: path.join(physicalDir, `${name}.node`) };
 }
 
 function loadNativeModule(name: string) {
@@ -52,8 +60,7 @@ function loadNativeModule(name: string) {
     const minimum = requiredGlibc.split('.').map(Number);
     if (actual[0] < minimum[0] || (actual[0] === minimum[0] && actual[1] < minimum[1])) fail('ERR_PTY_GLIBC', `glibc ${requiredGlibc}+ is required, found ${glibc}.`);
   }
-  const dir = unpacked(path.join(path.dirname(metadataPath), 'bin'));
-  const file = path.join(dir, `${name}.node`);
+  const { dir, file } = nativePaths(metadataPath, name);
   if (!fs.existsSync(file)) fail('ERR_PTY_BINARY_MISSING', `missing ${file}. In Electron, unpack the complete @qwqo/node-pty* packages from ASAR, including helpers and DLLs.`);
   try {
     return { dir, module: require(file) };
@@ -61,4 +68,4 @@ function loadNativeModule(name: string) {
     fail('ERR_PTY_NATIVE_LOAD', `cannot load ${file} on ${process.platform}-${process.arch}, Node ${process.versions.node}, Node-API ${process.versions.napi}, Electron ${process.versions.electron || 'none'}. Check OS version, shared libraries and package architecture. ${cause.message}`, cause);
   }
 }
-module.exports = { loadNativeModule, platformId, unpacked };
+module.exports = { loadNativeModule, nativePaths, platformId, unpacked };

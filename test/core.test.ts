@@ -1,12 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
+import { join } from 'node:path';
 import { versionOf, hash } from '../scripts/common.ts';
 import { evaluateChecks } from '../scripts/gate.ts';
 import { publishPackages, publishPlan } from '../scripts/publish.ts';
 import { shouldTest, latestPerMajor } from '../scripts/detect.ts';
 const require = createRequire(import.meta.url);
-const { platformId, unpacked } = require('../runtime/loader.cts');
+const { nativePaths, platformId, unpacked } = require('../runtime/loader.cts');
 
 test('runtime checks deduplicate successful and in-flight fingerprints, retry failures', () => {
   assert.equal(shouldTest('abc', [{ display_title: 'abc', status: 'queued' }]), false);
@@ -41,6 +42,19 @@ test('platform selection follows npm vocabulary and identifies libc', () => {
   assert.throws(() => platformId('linux', 'x64', {}), { code: 'ERR_PTY_LIBC' });
   assert.throws(() => platformId('win32', 'amd64'), { code: 'ERR_PTY_PLATFORM' });
   assert.equal(unpacked('/app/resources/app.asar/node_modules/pkg/bin'), '/app/resources/app.asar.unpacked/node_modules/pkg/bin');
+  assert.equal(unpacked('/app/resources/app.asar.unpacked/node_modules/pkg/bin'), '/app/resources/app.asar.unpacked/node_modules/pkg/bin');
+});
+test('ASAR native loading leaves the helper path for upstream to unpack once', () => {
+  const metadata = join(process.cwd(), 'app.asar', 'node_modules', '@qwqo', 'node-pty-darwin-arm64', 'package.json');
+  const { dir, file } = nativePaths(metadata, 'pty');
+  assert.ok(dir.includes('app.asar'));
+  assert.ok(!dir.includes('app.asar.unpacked'));
+  assert.equal(file, join(unpacked(dir), 'pty.node'));
+  assert.ok(unpacked(join(dir, 'spawn-helper')).includes('app.asar.unpacked'));
+  assert.ok(!unpacked(join(dir, 'spawn-helper')).includes('unpacked.unpacked'));
+  const resolvedOutsideAsar = nativePaths(unpacked(metadata), 'pty');
+  assert.equal(resolvedOutsideAsar.dir, dir);
+  assert.equal(resolvedOutsideAsar.file, file);
 });
 test('partial publish retries immutable packages and never exposes main before children', async () => {
   const packages = ['main', 'linux', 'windows'].map(name => ({ name, version: '1.0.0', buildKey: 'key', integrity: hash(name) }));
