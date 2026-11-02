@@ -5,6 +5,7 @@ import {
   root,
   run,
   writeJson,
+  version,
 } from "./common.ts";
 import { join } from "node:path";
 
@@ -14,6 +15,7 @@ if (!platform.container || !["build", "verify"].includes(mode))
   throw new Error("Expected a configured Linux container and build or verify");
 
 function execute(image: string, command: string, proof: string) {
+  const ownership = `trap 'chown -Rh ${process.getuid()}:${process.getgid()} /work/.work /work/dist /work/node_modules' EXIT\n`;
   const setup =
     platform.libc === "musl"
       ? "apk add --no-cache build-base python3 git linux-headers\n"
@@ -36,13 +38,20 @@ tar -xJf /tmp/node.tar.xz --strip-components=1 -C /opt/node-pty-node
     "-e",
     `TARGET_PLATFORM=${platform.id}`,
     "-e",
+    `UPSTREAM_TAG=${config.upstream.tag}`,
+    "-e",
+    `TEST_VERSION=${version}`,
+    "-e",
     `PROOF_NAME=${proof}`,
     "-e",
     "CURRENT_NODE_ONLY=1",
     image,
     "sh",
     "-ec",
-    setup + "npm ci --ignore-scripts --no-audit --no-fund\n" + command,
+    ownership +
+      setup +
+      "npm ci --ignore-scripts --no-audit --no-fund\n" +
+      command,
   ]);
 }
 

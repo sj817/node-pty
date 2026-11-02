@@ -204,6 +204,7 @@ if (kind === "js") {
     ],
   });
 } else {
+  let androidNdk;
   let binding = readFileSync(join(source, "binding.gyp"), "utf8");
   if (!binding.includes("'target_defaults': {"))
     throw new Error("Unreviewed upstream binding.gyp");
@@ -249,6 +250,11 @@ if (kind === "js") {
       throw new Error(
         "ANDROID_NDK_HOME is required for Android cross compilation",
       );
+    androidNdk = readFileSync(join(ndk, "source.properties"), "utf8")
+      .match(/^Pkg.Revision\s*=\s*(.+)$/m)?.[1]
+      .trim();
+    if (androidNdk !== platform.ndkVersion)
+      throw new Error("Android NDK differs from the pinned toolchain");
     const headers = join(work, "headers");
     run(
       process.execPath,
@@ -342,6 +348,16 @@ if (kind === "js") {
     platform,
     buildNode: config.buildNode,
     compiler: process.env.CXX || "node-gyp default",
+    buildEnvironment: {
+      node: process.versions.node,
+      arch: process.arch,
+      nodeGyp: readJson(join(source, "node_modules/node-gyp/package.json"))
+        .version,
+      androidNdk,
+      runnerImage: process.env.ImageOS || null,
+      runnerImageVersion: process.env.ImageVersion || null,
+      container: platform.container || null,
+    },
     bindingSha256: hash(binding),
     files: Object.fromEntries(
       binaries.map((filename) => [

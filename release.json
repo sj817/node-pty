@@ -14,7 +14,7 @@
   "publishNpm": "12.2.1",
   "pnpm": "10.20.0",
   "runtimes": {
-    "node": ["22.23.4", "24.22.1", "26.13.0"],
+    "node": ["22.14.0", "22.23.4", "24.22.1", "26.13.0"],
     "electron": ["43.8.6", "44.10.1", "45.2.1"]
   },
   "platforms": [
@@ -99,7 +99,8 @@
       "minimumOS": "Android API 24",
       "androidApi": 24,
       "publish": false,
-      "electron": false
+      "electron": false,
+      "ndkVersion": "27.2.12479018"
     },
     {
       "id": "linux-arm64-musl",
@@ -120,7 +121,8 @@
       "minimumOS": "Android API 24",
       "androidApi": 24,
       "publish": true,
-      "electron": false
+      "electron": false,
+      "ndkVersion": "27.2.12479018"
     }
   ],
   "requiredChecks": [

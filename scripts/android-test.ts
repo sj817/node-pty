@@ -24,7 +24,8 @@ if (!prefix || !/^\/[a-zA-Z0-9/_.+-]+$/.test(prefix) || !serial) {
   );
 }
 const quote = (value: string) => `'${value.replace(/'/g, `'"'"'`)}'`;
-const environment = `export LD_LIBRARY_PATH=${quote(prefix + "/lib")}; export PATH=${quote(prefix + "/bin:/system/bin:/system/xbin")}; `;
+const remote = `/data/local/tmp/qwqo-node-pty-${version}-${Date.now()}`;
+const environment = `export LD_LIBRARY_PATH=${quote(prefix + "/lib")}; export PATH=${quote(prefix + "/bin:/system/bin:/system/xbin")}; export HOME=${quote(remote + "/home")}; export npm_config_cache=${quote(remote + "/cache")}; `;
 function adb(args: string[], capture = false) {
   return run("adb", ["-s", serial, ...args], { capture });
 }
@@ -59,10 +60,9 @@ const server = fork(join(root, "test/registry.ts"), [out], {
 const [{ port }] = await once(server, "message");
 const work = join(root, ".work/android-test");
 mkdirSync(work, { recursive: true });
-const remote = `/data/local/tmp/qwqo-node-pty-${version}-${Date.now()}`;
 const results = [];
 try {
-  shell(`mkdir -p ${quote(remote)}`);
+  adb(["shell", `mkdir -p ${quote(remote)}`]);
   adb(["reverse", `tcp:${port}`, `tcp:${port}`]);
   for (const [name, toolVersion] of [
     ["npm", config.publishNpm],

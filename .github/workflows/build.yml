@@ -82,8 +82,8 @@ jobs:
       - name: Android NDK
         if: matrix.os == 'android'
         run: |
-          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'ndk;27.2.12479018'
-          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.2.12479018" >> "$GITHUB_ENV"
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'ndk;${{ matrix.ndkVersion }}'
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/${{ matrix.ndkVersion }}" >> "$GITHUB_ENV"
       - run: node scripts/container.ts build
         if: matrix.container
       - run: npm run build:native
