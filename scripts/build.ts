@@ -250,21 +250,7 @@ if (kind === "js") {
       ? { MACOSX_DEPLOYMENT_TARGET: platform.deploymentTarget }
       : {}),
   };
-  if (platform.id === "win32-arm64")
-    run(
-      "npm",
-      [
-        "install",
-        "--no-save",
-        "--no-package-lock",
-        "--ignore-scripts",
-        "--no-audit",
-        "--no-fund",
-        `node-gyp@${config.windowsArmNodeGyp}`,
-      ],
-      { cwd: source, env },
-    );
-  const nodeGyp = join(source, "node_modules/node-gyp/bin/node-gyp.js");
+  const nodeGyp = join(root, "node_modules/node-gyp/bin/node-gyp.js");
   if (platform.os === "android") {
     const ndk = process.env.ANDROID_NDK_HOME;
     if (!ndk)
@@ -400,7 +386,7 @@ if (kind === "js") {
     buildEnvironment: {
       node: process.versions.node,
       arch: process.arch,
-      nodeGyp: readJson(join(source, "node_modules/node-gyp/package.json"))
+      nodeGyp: readJson(join(root, "node_modules/node-gyp/package.json"))
         .version,
       androidNdk,
       runnerImage: process.env.ImageOS || null,

@@ -109,7 +109,6 @@ export function buildKey() {
       version,
       napi: config.napi,
       node: config.buildNode,
-      windowsArmNodeGyp: config.windowsArmNodeGyp,
       platforms: config.platforms,
       files: paths.map((p) => [
         p,

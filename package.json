@@ -29,6 +29,7 @@
     "eslint": "10.14.0",
     "eslint-config-prettier": "10.1.8",
     "globals": "17.14.0",
+    "node-gyp": "12.1.0",
     "prettier": "3.9.10",
     "semver": "7.7.3",
     "typescript": "5.9.3",
