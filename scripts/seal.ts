@@ -9,6 +9,14 @@ async function findRelease() {
   const releases = await githubPages(`repos/${config.repository}/releases`);
   return releases.find(item => item.tag_name === tag) || null;
 }
+async function waitForRelease() {
+  for (let attempt = 0; attempt < 60; attempt++) {
+    const found = await findRelease();
+    if (found) return found;
+    await new Promise(resolve => setTimeout(resolve, 2000));
+  }
+  throw new Error(`Draft release ${tag} is not visible after creation`);
+}
 let release = await findRelease();
 const ref = await github(`repos/${config.repository}/git/ref/tags/${tag}`, { allow404: true });
 if (ref && (ref.object.type !== 'commit' || ref.object.sha !== sha)) throw new Error(`Release tag conflict ${tag}`);
@@ -23,8 +31,8 @@ const manifest = readJson(join(dir, 'release-manifest.json'));
 if (manifest.sourceCommit !== sha) throw new Error('Artifact source commit differs from release commit');
 if (!release) {
   run('gh', ['release', 'create', tag, '--repo', config.repository, '--target', sha, '--draft', '--title', `${config.package} ${version}`, '--notes', `Upstream ${config.upstream.tag} at ${config.upstream.sha}. Full runtime verification and artifact checksums are in release-manifest.json.`]);
-  release = await findRelease();
-  if (!release) throw new Error(`Draft release ${tag} was not found after creation`);
+  release = await waitForRelease();
+  if (release.target_commitish !== sha) throw new Error(`Release target conflict ${tag}`);
 }
 const checkDir = join(root, '.work/sealed');
 mkdirSync(checkDir, { recursive: true });

@@ -40,7 +40,8 @@ async function main() {
       run('npm', ['publish', join(dir, pkg.filename), '--ignore-scripts', '--access', 'public', '--provenance', '--tag', 'candidate', '--registry', registry]);
     },
     confirm: async pkg => {
-      for (let attempt = 0; attempt < 72; attempt++) {
+      // npm may expose version metadata before the tarball finishes processing.
+      for (let attempt = 0; attempt < 240; attempt++) {
         const record = await adapter.get(pkg);
         if (record) {
           publishPlan([pkg], { [pkg.name]: record }, config.package);
@@ -55,6 +56,7 @@ async function main() {
             if (response.status !== 404) throw new Error(`Registry tarball HTTP ${response.status} for ${pkg.name}`);
           }
         }
+        if (attempt % 12 === 11) console.log(`Waiting for npm to expose ${pkg.name}@${pkg.version} and its attested tarball (${Math.ceil((attempt + 1) / 12)}m)`);
         await new Promise(resolve => setTimeout(resolve, 5000));
       }
       throw new Error(`Registry did not expose a readable attested tarball for ${pkg.name}@${pkg.version}`);
