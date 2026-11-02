@@ -1,23 +1,37 @@
 {
   "name": "node-pty-distribution",
   "private": true,
-  "version": "1.0.0",
+  "version": "0.0.2",
   "type": "module",
   "scripts": {
     "test": "node --test test/*.test.ts",
     "typecheck": "tsc --noEmit",
-    "build": "node scripts/build.ts",
     "verify": "node scripts/verify.ts",
     "gate": "node scripts/gate.ts",
     "detect": "node scripts/detect.ts",
     "publish:dry": "node scripts/publish.ts --dry-run",
-    "trust:prepare": "node scripts/trust.ts"
+    "trust:prepare": "node scripts/trust.ts",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "build:js": "node scripts/build.ts js",
+    "build:native": "node scripts/build.ts native",
+    "history:lock": "node scripts/history.ts"
   },
-  "engines": { "node": ">=24.22.1" },
+  "engines": {
+    "node": ">=22.18.0"
+  },
   "devDependencies": {
     "@electron/asar": "4.3.1",
+    "@eslint/js": "10.0.1",
     "@types/node": "22.19.0",
+    "@types/semver": "7.8.0",
+    "eslint": "10.14.0",
+    "eslint-config-prettier": "10.1.8",
+    "globals": "17.14.0",
+    "prettier": "3.9.10",
     "semver": "7.7.3",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.72.1"
   }
 }

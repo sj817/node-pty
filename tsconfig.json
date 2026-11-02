@@ -10,5 +10,11 @@
     "strict": false,
     "types": ["node"]
   },
-  "include": ["scripts/**/*.ts", "runtime/**/*.cts", "test/*.test.ts", "test/registry.ts", "test/smoke.cts"]
+  "include": [
+    "scripts/**/*.ts",
+    "runtime/**/*.ts",
+    "test/*.test.ts",
+    "test/registry.ts",
+    "test/smoke.ts"
+  ]
 }
