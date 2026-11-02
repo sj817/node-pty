@@ -1,53 +1,78 @@
 # @qwqo/node-pty
 
-A personal build and distribution project for microsoft/node-pty. The upstream PTY implementation and public API are retained. Packages are built from a pinned commit and distributed through exact-version optional platform dependencies.
+Experimental prebuilt distribution of [microsoft/node-pty](https://github.com/microsoft/node-pty), maintained as a personal project. The PTY implementation and declarations come from a full upstream commit SHA.
 
-## Installation
+## Test releases
+
+Development uses versions `0.0.1` through `0.0.100` and the npm `next` tag. The first occupied version, `0.0.1`, is a binding placeholder. The withdrawn `1.1.0` release is unavailable. Testing continues with `0.0.2`.
 
 ```sh
-npm install @qwqo/node-pty
-pnpm add @qwqo/node-pty
+npm install @qwqo/node-pty@next
+pnpm add @qwqo/node-pty@next
 ```
 
-Check the registry's `latest` tag before installing during the initial rollout. npm assigns `latest` to the first `0.0.1` bootstrap placeholder even when it is published under `bootstrap`; the registry rejects removing `latest`. The placeholder contains no PTY implementation and must not be treated as a usable release. A verified release replaces `latest` only after all platform packages are available.
+Use these commands once the corresponding test workflow has published `next`. The initial `latest` tag may still point at the empty bootstrap package. npm permanently reserves previously published name/version combinations, including withdrawn versions.
 
-```js
-const pty = require('@qwqo/node-pty');
-const terminal = pty.spawn(process.platform === 'win32' ? 'cmd.exe' : '/bin/sh', [], {
+```ts
+import * as pty from "@qwqo/node-pty";
+
+const shell = process.platform === "win32" ? "cmd.exe" : "/bin/sh";
+const terminal = pty.spawn(shell, [], {
   cols: 80,
   rows: 24,
-  env: process.env
+  env: process.env,
 });
-terminal.onData(data => process.stdout.write(data));
+terminal.onData((data) => process.stdout.write(data));
 terminal.onExit(({ exitCode }) => console.log(exitCode));
-terminal.write('echo hello\r');
+terminal.write("echo hello\r");
 terminal.resize(100, 40);
 ```
 
-Installation works with scripts disabled. Keep optional dependencies enabled. The source adapters, loader, build and release tools are TypeScript; the main npm package contains compiled CommonJS and type declarations because Node and Electron execute JavaScript. Native packages contain the native modules and their required helpers. Runtime errors identify the expected package, version, architecture and libc.
+The main tarball contains the upstream JS implementation, public types and platform loader. Each optional platform dependency uses the exact same version. Installation supports disabled scripts and requires optional dependencies. The package contains no implicit node-gyp install input.
 
-## Compatibility
+## Build and release sequence
 
-The configured release matrix below becomes supported only after every build and tarball verification job succeeds. Consult the published release's `release-manifest.json` for the exact executed runtime versions and results. Until a release exists, these are validation targets.
+1. Select a tag from `upstream-tags.json` and verify its full SHA and CI state.
+2. Build platform native modules and required helpers.
+3. Compile the upstream TypeScript implementation into ESM JS once, including workers and fork agents. Build the ESM loader and copy the upstream declarations.
+4. Test packed tarballs through npm and pnpm in isolated projects. Run actual Node and supported Electron runtimes.
+5. Validate Android ARM64 tarballs on a device and supply the resulting proof to the publishing workflow.
+6. Publish platform packages, retrieve and verify their attested tarballs, then publish the main package and promote `next`.
 
-| Platform package suffix | Build and test host | Minimum target |
-| --- | --- | --- |
-| win32-x64 | windows-2022 | Windows 10 22H2 |
-| win32-arm64 | windows-11-arm | Windows 11 |
-| darwin-x64 | macos-15-intel | macOS 13 |
-| darwin-arm64 | macos-14 | macOS 13 |
-| linux-x64-glibc | ubuntu-22.04 | glibc 2.35 |
-| linux-arm64-glibc | ubuntu-22.04-arm | glibc 2.35 |
+The publisher rejects versions outside the test range and any target tag other than `next`. It requires a successful build from the same repository commit as the publication workflow. Registry conflicts, moved source tags and incomplete target verification stop publication. Failed uploads can be retried using the same build run and Android proof.
 
-Every suffix is prefixed with `@qwqo/node-pty-`. Linux packages declare `libc: ["glibc"]`. musl and Android currently have no published support because target runtime validation is pending. Minimum targets are build baselines. The hosted test OS is listed separately and does not establish acceptance on every older OS.
+GitHub test releases are prereleases titled `node-pty`. Assets use names such as `node-pty.tgz`, `node-pty-darwin-arm64.tgz`, `node-pty-linux-x64-musl.tgz` and `node-pty-android-arm64.tgz`. Version information lives in package metadata, the Git tag and `release-manifest.json`. npm controls its own registry download URLs.
 
-The initial runtime matrix is Node 22.23.4, 24.22.1 and 26.13.0, plus Electron 43.8.6, 44.10.1 and 45.2.1. Node >=22.14.0 and Node-API >=8 are required by this distribution. Only the listed runtime versions have scheduled acceptance tests.
+## Platform validation
 
-The pinned source registers each native module with `NODE_API_MODULE` and uses Node-API thread-safe functions. Native sources have no direct V8 or libuv calls. Builds explicitly define `NAPI_VERSION=8`. One binary per OS, architecture and libc is tested across all listed runtimes. Node-API compatibility covers the native interface while PTY behavior, JS runtime APIs, workers and OS libraries are verified separately.
+These are configured test targets. A test release's manifest records which runtimes actually executed and the checksums of the exact tarballs.
 
-## Electron
+| Platform suffix   | Build baseline                | Runtime verification                         |
+| ----------------- | ----------------------------- | -------------------------------------------- |
+| win32-x64         | Windows Server 2022 toolchain | Node and Electron on Windows x64             |
+| win32-arm64       | Windows 11 ARM64, VS 2026     | Node and Electron on Windows ARM64           |
+| darwin-x64        | macOS deployment target 13    | Node and Electron on macOS Intel             |
+| darwin-arm64      | macOS deployment target 13    | Node and Electron on macOS ARM64             |
+| linux-x64-glibc   | manylinux glibc 2.28          | Baseline container, Node and Electron        |
+| linux-arm64-glibc | manylinux glibc 2.28          | Baseline container, Node and Electron        |
+| linux-x64-musl    | Pinned Alpine Node image      | Node 22, 24 and 26 container images          |
+| linux-arm64-musl  | Pinned Alpine Node image      | Node 22, 24 and 26 container images          |
+| android-arm64     | Android NDK API 24            | Android/Bionic device Node, npm and pnpm     |
+| android-x64       | Android NDK API 24            | Build artifact pending a target runtime test |
 
-Use the package from Electron's main process. Configure the packager to unpack the complete main and platform packages, including JS worker/fork agents, `.node` files, helper executables and DLLs. For electron-builder use
+Every published suffix is prefixed with `@qwqo/node-pty-`. Linux manifests specify `libc`. Android x64 stays outside the npm release set until target verification exists. Electron binaries are validated on its desktop platforms. Android and native musl currently use Node-only verification.
+
+The current adapter uses Node-API 8 and Node 22.14+ synchronous ESM loading. Node's own OS and libc requirements also apply. Lowering the addon's glibc baseline cannot lower the Node executable's requirements. Container image digests and configuration are pinned in `release.json`. C++ runtime libraries are linked statically on Linux to avoid importing a newer host libstdc++ requirement.
+
+Node and Electron share one binary for a supported OS, architecture and libc when the selected source uses Node-API. Each combination is still tested with actual runtime versions. Older upstream sources using NAN/V8 require separate ABI adapters.
+
+Windows upstream console-list agents can emit `AttachConsole failed` during shell-exit races. Tests check shell output, resizing, exit events, exit status and process cleanup separately.
+
+## Electron and ESM
+
+Repository scripts, tests, loaders and generated JS use ESM. Native `.node` loading uses Node's `createRequire`. Node 22.14+ callers can also load the synchronous ESM public API with `require()`.
+
+Keep the package external to bundlers and unpack the complete main and platform packages from ASAR, including worker JS, `.node` modules, helpers and DLLs. An electron-builder configuration is
 
 ```json
 {
@@ -58,48 +83,39 @@ Use the package from Electron's main process. Configure the packager to unpack t
 }
 ```
 
-Keep the package external to JS bundlers so worker and forked agent paths remain intact. CI launches actual Electron main processes both from a directory and from `app.asar` with complete packages unpacked. It verifies shell I/O, resize, exit events, exit codes, forced termination, bundled ConPTY and WinPTY on Windows. macOS helpers retain executable permissions inside npm tarballs.
+CI runs real Electron main processes from both a directory and ASAR. macOS `spawn-helper` retains executable permissions. Windows packages include ConPTY, OpenConsole and WinPTY assets.
 
-## Upstream and versions
+## Historical tags and CI
 
-`release.json` is the configuration source. The initial upstream is `v1.1.0`, commit `1def5774632305246fe21f0f69e23a664d6c5910`. Formal builds fetch this full SHA. Each package records upstream identity, build configuration and a build fingerprint. Platform packages record SHA-256 checksums for every native file. Release manifests record SHA-256 and npm SHA-512 integrity for every tarball.
+`upstream-tags.json` locks every discovered historical tag to a SHA and records its native-interface family. `detect.yml` checks all tags, reports exact-SHA CI failures or missing evidence, and detects moved tags. Node-API tags can be selected individually through `build.yml` inputs. A successful compilation becomes publishable only after all runtime tests and the upstream gate pass. Historical NAN/V8 or unclassified tags remain pending a reviewed ABI/build adapter.
 
-Upstream `M.m.p` maps to downstream `M.m.(p * 1000 + revision)`, with revisions 0 through 999. Thus upstream 1.1.0 revisions 0 and 1 become 1.1.0 and 1.1.1, while upstream 1.1.1 revision 0 becomes 1.1.1000. Prereleases preserve the upstream prerelease identifiers and append `.r<revision>`. Stable releases use `latest`, prereleases use `next`. Every main/platform package has the same exact version.
+- `test.yml` runs ESLint, Prettier, TypeScript and policy tests.
+- `build.yml` builds native assets, compiles the complete main package, verifies desktop/musl targets and uploads a candidate bundle. Android device verification is a separate publication gate.
+- `publish.yml` accepts a candidate build run ID and Android proof, defaults to dry-run, and publishes only test versions to `next` through OIDC.
+- `compatibility.yml` retests published tarballs without publishing new binaries.
+- `detect.yml` tracks upstream tags and supported runtime lines daily and on demand.
 
-To update, review the detected tag and native/JS adapters, set the full tag SHA and upstream version in `release.json`, reset revision to zero, and run the build workflow. Increment revision for a loader correction, platform addition or rebuild. Runtime-only changes can retest existing published tarballs without publishing new binaries.
+The present upstream gate uses observed Azure Pipelines checks from `release.json`. Historical tags with different or absent CI retain a pending reason for review. New tag discovery never silently authorizes a formal release.
 
-## Workflows
-
-- `detect.yml` runs daily and on demand. It checks the pinned tag for movement, discovers stable and prerelease tags separately, evaluates the configured upstream checks at each exact SHA, and records missing/failing/pending checks in its artifact and job summary. Newly discovered source versions require review and an explicit lock update. Supported Node release lines and Electron's latest three stable lines are discovered from their official feeds. Runtime changes dispatch a deduplicated compatibility-only run after the first release.
-- `build.yml` runs policy tests and the upstream gate, builds on six native hosts, tests the packed tarballs in isolated npm and pnpm projects, checks types, runs Node and real Electron, and assembles a release bundle only when every required result passes.
-- `publish.yml` takes a successful main-branch build run ID. Its default is a dry run. A real run seals immutable tarballs in a draft GitHub release, verifies the source gate again, publishes and retrieves every platform tarball, publishes the main package, then updates platform tags and the main tag last. Existing versions must match their expected integrity and build fingerprint. Rerun with the same build run ID after partial failure. A rebuilt conflicting tarball requires a new revision.
-- `compatibility.yml` retrieves existing release assets and reruns acceptance against a supplied exact runtime matrix. It has read-only repository permissions.
-
-The upstream `ci.yml` only runs on pull requests at the pinned tag. Release gates therefore use the actual Azure Pipelines `node-pty (publish)` and `node-pty (native prebuilds)` checks, including each platform build and the Linux test check. The unrelated Dependabot update checks are excluded. Missing upstream status contexts are not treated as proof of success. Required named checks must independently succeed at the exact source SHA.
-
-## Local development and first publishing
+## Development
 
 ```sh
 npm ci --ignore-scripts
+npm run lint
+npm run format:check
 npm run typecheck
 npm test
-npm run gate
-npm run build
+npm run build:native
+npm run build:js
 npm run verify
-npm run trust:prepare
 ```
 
-Builds need the upstream compiler prerequisites, Python and the platform SDK. Verification downloads the configured real Node and Electron runtimes. Linux also needs Xvfb and Electron system libraries. Build and verification use fresh `.work` staging directories. Remove only the relevant generated staging directory before a local retry.
+Use `npm run format` to apply Prettier. ESLint uses the official recommended JS and typescript-eslint configurations with eslint-config-prettier. Source adapters fail when the expected upstream structure changes.
 
-Use `npt` 0.4.2 or newer to inspect `.work/trust`, with `--workflow publish.yml --environment npm --allow-dist-tag`. Run `scan` and `sync --placeholder --placeholder-tag bootstrap --dry-run` first. After confirming all package targets, execute `sync --placeholder --placeholder-tag bootstrap --allow-dist-tag`. npm's unavoidable first-publish `latest` points to the placeholder until the verified release is promoted; do not advertise it as usable. npm login and account 2FA are performed interactively by the maintainer.
+For Android tests, download the exact `javascript` and `native-android-arm64` CI artifacts into `dist/main` and `dist/android-arm64`. Set `ADB_SERIAL` and `ANDROID_NODE_PREFIX` to a connected Android device and its staged Node runtime, then run `node scripts/android-test.ts`. The generated `dist/android-arm64/verified.json` is the `android_proof` workflow input. This path requires root ADB for the current device harness and records Android/Bionic identity and tarball integrity.
 
-Every package must trust `sj817/node-pty`, workflow `publish.yml`, environment `npm`. Direct publishing and dist-tag management are required. The workflow uses GitHub-hosted runners, Node 24.22.1, npm 12.2.1, a public repository and `id-token: write` only in the publishing job. Registry credentials are kept outside the repository. The registry's provenance attestations are checked before promotion.
+Trusted Publishing bindings use `sj817/node-pty`, `publish.yml`, environment `npm`. Use local `npt` with `--allow-dist-tag`, inspect a dry-run and confirm new package targets before provisioning. CI uses GitHub OIDC with no stored npm token.
 
-## License and sources
+## License
 
-Upstream's complete MIT license is retained in `LICENSE`. Package licenses include WinPTY, node-addon-api and ConPTY. ConPTY's MIT license is sourced from microsoft/terminal commit `188822fa51dba7e11b64801483f4909db5fd020a`. The bundled ConPTY binaries come from the pinned node-pty source tree. All distribution modifications are MIT licensed.
-
-- [Upstream source](https://github.com/microsoft/node-pty/tree/1def5774632305246fe21f0f69e23a664d6c5910)
-- [npt](https://github.com/sj817/npm-trust)
-- [npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers/)
-- [Node-API stability](https://nodejs.org/api/n-api.html#implications-of-abi-stability)
+The complete upstream MIT license and third-party licenses for WinPTY, node-addon-api and ConPTY are retained. The initial reviewed source is microsoft/node-pty `v1.1.0` at `1def5774632305246fe21f0f69e23a664d6c5910`. ConPTY licensing is sourced from microsoft/terminal commit `188822fa51dba7e11b64801483f4909db5fd020a`. Distribution modifications are MIT licensed.
