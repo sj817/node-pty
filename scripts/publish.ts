@@ -169,4 +169,5 @@ async function main() {
   );
   console.log(JSON.stringify(plan, null, 2));
 }
-if (import.meta.url === pathToFileURL(process.argv[1]).href) await main();
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href)
+  await main();

@@ -1,7 +1,8 @@
 import { pathToFileURL } from "node:url";
 import { join } from "node:path";
 import semver from "semver";
-import { config, root, run, writeJson } from "./common.ts";
+import { config, root, run, writeJson, readJson } from "./common.ts";
+import { existsSync } from "node:fs";
 
 export function classifyNativeSource(
   source: string,
@@ -34,6 +35,13 @@ async function main() {
     ),
   );
   const tags = pages.flat().filter((tag) => semver.valid(tag.name));
+  const lockPath = join(root, "upstream-tags.json");
+  const previous = existsSync(lockPath) ? readJson(lockPath) : [];
+  for (const tag of tags) {
+    const locked = previous.find((item) => item.tag === tag.name);
+    if (locked && locked.sha !== tag.commit.sha)
+      throw new Error(`MOVED TAG ${tag.name}`);
+  }
   const records = [];
   for (let index = 0; index < tags.length; index += 4) {
     const batch = await Promise.all(
@@ -54,12 +62,24 @@ async function main() {
           sourcePath = candidate;
           break;
         }
+        const reviewed = previous.find(
+          (item) => item.tag === tag.name && item.sha === tag.commit.sha,
+        );
+        const packageResponse = await fetch(
+          `https://raw.githubusercontent.com/${config.upstream.repository}/${tag.commit.sha}/package.json`,
+          { signal: AbortSignal.timeout(45000) },
+        );
+        const packageVersion = packageResponse.ok
+          ? (await packageResponse.json()).version
+          : undefined;
         return {
           tag: tag.name,
           sha: tag.commit.sha,
           version: semver.valid(tag.name),
+          packageVersion,
           api,
           sourcePath,
+          ...(reviewed?.ci ? { ci: reviewed.ci } : {}),
         };
       }),
     );
@@ -77,4 +97,5 @@ async function main() {
   );
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) await main();
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href)
+  await main();

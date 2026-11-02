@@ -38,6 +38,10 @@ export function latestPerMajor(versions: string[], majors: number[]): string[] {
     )
     .filter(Boolean);
 }
+
+export function compatibilityKey(upstream, version: string, runtimes): string {
+  return `compatibility-${hash(JSON.stringify({ upstream, version, runtimes })).slice(0, 24)}`;
+}
 async function main() {
   // Always check the pinned tag, including on runs without newer releases.
   const pinned = await gate();
@@ -102,7 +106,11 @@ async function main() {
     ),
     electron: latestPerMajor(electronVersions, electronMajors),
   };
-  const key = `compatibility-${hash(JSON.stringify({ upstream: config.upstream, runtimes })).slice(0, 24)}`;
+  const key = compatibilityKey(
+    config.upstream,
+    config.publication.version,
+    runtimes,
+  );
   const report = {
     pinned,
     candidates,
@@ -163,4 +171,5 @@ async function main() {
       );
   }
 }
-if (import.meta.url === pathToFileURL(process.argv[1]).href) await main();
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href)
+  await main();

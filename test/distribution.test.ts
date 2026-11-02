@@ -5,6 +5,36 @@ import { classifyNativeSource } from "../scripts/history.ts";
 import { validateDeviceProof } from "../scripts/proof.ts";
 import { buildKey, config, root } from "../scripts/common.ts";
 import { execFileSync } from "node:child_process";
+import { requiredChecksFor } from "../scripts/gate.ts";
+import { compatibilityKey } from "../scripts/detect.ts";
+
+test("tag-specific gates use the test job declared by that exact source", () => {
+  const checks = requiredChecksFor({
+    tag: "v1.2.0-beta.17",
+    sha: "02733b571b980b6418ff3bf2247f901463a58344",
+  });
+  assert.ok(
+    checks.includes("node-pty (publish) (node-pty Linux (Node.js 24.22.1))"),
+  );
+  assert.ok(
+    !checks.includes("node-pty (publish) (node-pty Linux (Node.js 20.x))"),
+  );
+  assert.deepEqual(
+    requiredChecksFor({
+      tag: "v1.1.0",
+      sha: "1def5774632305246fe21f0f69e23a664d6c5910",
+    }),
+    config.requiredChecks,
+  );
+});
+
+test("runtime deduplication distinguishes downstream test releases", () => {
+  const runtimes = { node: ["24.22.2"], electron: ["45.2.1"] };
+  assert.notEqual(
+    compatibilityKey(config.upstream, "0.0.2", runtimes),
+    compatibilityKey(config.upstream, "0.0.3", runtimes),
+  );
+});
 
 test("default and explicit upstream selection produce identical build metadata", () => {
   const output = execFileSync(

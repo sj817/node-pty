@@ -1,4 +1,11 @@
-import { config, github, githubPages, writeJson, root } from "./common.ts";
+import {
+  config,
+  github,
+  githubPages,
+  writeJson,
+  readJson,
+  root,
+} from "./common.ts";
 import { pathToFileURL } from "node:url";
 import { join } from "node:path";
 
@@ -51,6 +58,20 @@ export async function resolveTag(tag, repository = config.upstream.repository) {
     throw new Error(`Invalid tag target ${tag}`);
   return object.sha;
 }
+export function requiredChecksFor(upstream) {
+  const profile = readJson(join(root, "upstream-tags.json")).find(
+    (tag) => tag.tag === upstream.tag && tag.sha === upstream.sha,
+  );
+  if (!profile?.ci) return config.requiredChecks;
+  if (profile.ci.app !== config.checkApp)
+    throw new Error("Unreviewed upstream check provider");
+  return config.requiredChecks.map((name) =>
+    name.startsWith("node-pty (publish) (node-pty Linux (Node.js ")
+      ? profile.ci.linuxCheck
+      : name,
+  );
+}
+
 export async function gate(upstream = config.upstream) {
   const sha = await resolveTag(upstream.tag);
   if (sha !== upstream.sha)
@@ -65,7 +86,12 @@ export async function gate(upstream = config.upstream) {
   const result = {
     tag: upstream.tag,
     sha,
-    ...evaluateChecks(sha, checks, status.statuses),
+    ...evaluateChecks(
+      sha,
+      checks,
+      status.statuses,
+      requiredChecksFor(upstream),
+    ),
     checkedAt: new Date().toISOString(),
     checks: checks.map((c) => ({
       id: c.id,
@@ -79,7 +105,10 @@ export async function gate(upstream = config.upstream) {
   };
   return result;
 }
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
   const result = await gate();
   writeJson(join(root, "dist/gate.json"), result);
   console.log(JSON.stringify(result, null, 2));
