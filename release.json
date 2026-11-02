@@ -1,0 +1,42 @@
+{
+  "repository": "sj817/node-pty",
+  "package": "@qwqo/node-pty",
+  "upstream": {
+    "repository": "microsoft/node-pty",
+    "tag": "v1.1.0",
+    "version": "1.1.0",
+    "sha": "1def5774632305246fe21f0f69e23a664d6c5910"
+  },
+  "revision": 0,
+  "napi": 8,
+  "buildNode": "22.23.4",
+  "publishNode": "24.22.1",
+  "publishNpm": "12.2.1",
+  "pnpm": "10.20.0",
+  "runtimes": {
+    "node": ["22.23.4", "24.22.1", "26.13.0"],
+    "electron": ["43.8.6", "44.10.1", "45.2.1"]
+  },
+  "platforms": [
+    { "id": "win32-x64", "os": "win32", "cpu": "x64", "runner": "windows-2022", "minimumOS": "Windows 10 22H2" },
+    { "id": "win32-arm64", "os": "win32", "cpu": "arm64", "runner": "windows-11-arm", "minimumOS": "Windows 11" },
+    { "id": "darwin-x64", "os": "darwin", "cpu": "x64", "runner": "macos-15-intel", "minimumOS": "macOS 13", "deploymentTarget": "13.0" },
+    { "id": "darwin-arm64", "os": "darwin", "cpu": "arm64", "runner": "macos-14", "minimumOS": "macOS 13", "deploymentTarget": "13.0" },
+    { "id": "linux-x64-glibc", "os": "linux", "cpu": "x64", "libc": "glibc", "runner": "ubuntu-22.04", "minimumOS": "Linux glibc 2.35", "glibc": "2.35" },
+    { "id": "linux-arm64-glibc", "os": "linux", "cpu": "arm64", "libc": "glibc", "runner": "ubuntu-22.04-arm", "minimumOS": "Linux glibc 2.35", "glibc": "2.35" }
+  ],
+  "requiredChecks": [
+    "node-pty (publish)",
+    "node-pty (publish) (node-pty Linux (Node.js 20.x))",
+    "node-pty (native prebuilds)",
+    "node-pty (native prebuilds) (Build win32_x64)",
+    "node-pty (native prebuilds) (Build win32_arm64)",
+    "node-pty (native prebuilds) (Build macOS_x64)",
+    "node-pty (native prebuilds) (Build macOS_arm64)",
+    "node-pty (native prebuilds) (Build linux_x64)",
+    "node-pty (native prebuilds) (Build linux_arm64)"
+  ],
+  "checkApp": "azure-pipelines",
+  "workflow": "publish.yml",
+  "environment": "npm"
+}

@@ -1,0 +1,22 @@
+{
+  "name": "node-pty-distribution",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "build": "node scripts/build.mjs",
+    "verify": "node scripts/verify.mjs",
+    "gate": "node scripts/gate.mjs",
+    "detect": "node scripts/detect.mjs",
+    "publish:dry": "node scripts/publish.mjs --dry-run",
+    "trust:prepare": "node scripts/trust.mjs"
+  },
+  "engines": { "node": ">=22.14.0" },
+  "devDependencies": {
+    "@electron/asar": "4.3.1",
+    "@types/node": "22.19.0",
+    "semver": "7.7.3",
+    "typescript": "5.9.3"
+  }
+}
