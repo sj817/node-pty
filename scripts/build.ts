@@ -382,7 +382,10 @@ if (kind === "js") {
     ...metadata,
     platform,
     buildNode: config.buildNode,
-    compiler: process.env.CXX || "node-gyp default",
+    compiler:
+      platform.os === "android"
+        ? `Android NDK ${androidNdk} clang++`
+        : process.env.CXX || "node-gyp default",
     buildEnvironment: {
       node: process.versions.node,
       arch: process.arch,

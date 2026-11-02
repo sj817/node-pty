@@ -95,6 +95,7 @@ export function buildKey() {
   const paths = [
     "package-lock.json",
     "scripts/build.ts",
+    "scripts/container.ts",
     "scripts/adapt.ts",
     "scripts/common.ts",
     "runtime/loader.ts",
@@ -109,6 +110,7 @@ export function buildKey() {
       version,
       napi: config.napi,
       node: config.buildNode,
+      buildHostNode: config.publishNode,
       platforms: config.platforms,
       files: paths.map((p) => [
         p,
