@@ -58,7 +58,10 @@ if (
   config.upstream.sha
 )
   throw new Error("Source SHA mismatch");
-if (readJson(join(source, "package.json")).version !== config.upstream.version)
+if (
+  readJson(join(source, "package.json")).version !==
+  config.upstream.sourceVersion
+)
   throw new Error("Source version mismatch");
 run(
   "git",
@@ -93,10 +96,16 @@ run("npm", ["ci", "--ignore-scripts", "--no-audit", "--no-fund"], {
   cwd: source,
 });
 
+const features = {
+  winpty: readFileSync(join(source, "binding.gyp"), "utf8").includes(
+    "winpty.gyp",
+  ),
+};
 const metadata = {
   upstream: config.upstream,
   napi: config.napi,
   buildKey: key,
+  features,
 };
 const base = {
   version,
@@ -117,7 +126,19 @@ if (existsSync(stage))
   );
 mkdirSync(stage, { recursive: true });
 cpSync(join(root, "LICENSE"), join(stage, "LICENSE"));
-cpSync(join(root, "licenses"), join(stage, "licenses"), { recursive: true });
+mkdirSync(join(stage, "licenses"), { recursive: true });
+const notices =
+  kind === "js"
+    ? files(join(root, "licenses"))
+    : platform.os === "win32"
+      ? ["conpty.txt", ...(features.winpty ? ["winpty.txt"] : [])]
+      : platform.os === "linux"
+        ? ["gcc-gpl3.txt", "gcc-runtime-exception.txt"]
+        : platform.os === "android"
+          ? ["libcxx.txt", "libcxxabi.txt", "libunwind.txt", "compiler-rt.txt"]
+          : [];
+for (const notice of notices)
+  cpSync(join(root, "licenses", notice), join(stage, "licenses", notice));
 cpSync(
   join(source, "node_modules/node-addon-api/LICENSE.md"),
   join(stage, "licenses/node-addon-api.md"),
@@ -315,15 +336,14 @@ if (kind === "js") {
       ? [
           "conpty.node",
           "conpty_console_list.node",
-          "pty.node",
-          "winpty-agent.exe",
-          "winpty.dll",
           "conpty/conpty.dll",
           "conpty/OpenConsole.exe",
         ]
       : platform.os === "darwin"
         ? ["pty.node", "spawn-helper"]
         : ["pty.node"];
+  if (platform.os === "win32" && features.winpty)
+    binaries.push("pty.node", "winpty-agent.exe", "winpty.dll");
   for (const filename of binaries) {
     const target = join(stage, "bin", filename);
     mkdirSync(join(target, ".."), { recursive: true });
@@ -343,6 +363,35 @@ if (kind === "js") {
     join(stage, "README.md"),
     `# ${packageName(platform)}\n\nExperimental assets for ${config.package}. Target ${platform.minimumOS}. See SOURCE.json for the fixed upstream and build configuration.\n`,
   );
+  let abiRequirements;
+  if (platform.os === "linux" || platform.os === "android") {
+    const binary = join(stage, "bin/pty.node");
+    const dynamic = run("readelf", ["-d", binary], { capture: true });
+    const libraries = [...dynamic.matchAll(/\(NEEDED\).*\[([^\]]+)\]/g)].map(
+      (match) => match[1],
+    );
+    if (
+      libraries.some((library) =>
+        /libstdc\+\+|libgcc_s|libc\+\+_shared/.test(library),
+      )
+    )
+      throw new Error("C++ runtime must be linked statically");
+    const symbols = run("readelf", ["--version-info", binary], {
+      capture: true,
+    });
+    const glibc = [...symbols.matchAll(/GLIBC_(\d+)\.(\d+)/g)]
+      .map((match) => [Number(match[1]), Number(match[2])])
+      .sort((a, b) => b[0] - a[0] || b[1] - a[1])[0];
+    if (glibc && platform.glibc) {
+      const minimum = platform.glibc.split(".").map(Number);
+      if (
+        glibc[0] > minimum[0] ||
+        (glibc[0] === minimum[0] && glibc[1] > minimum[1])
+      )
+        throw new Error("Native symbols exceed the configured glibc baseline");
+    }
+    abiRequirements = { libraries, glibc: glibc?.join(".") };
+  }
   writeJson(join(stage, "SOURCE.json"), {
     ...metadata,
     platform,
@@ -359,6 +408,7 @@ if (kind === "js") {
       container: platform.container || null,
     },
     bindingSha256: hash(binding),
+    abiRequirements,
     files: Object.fromEntries(
       binaries.map((filename) => [
         filename,

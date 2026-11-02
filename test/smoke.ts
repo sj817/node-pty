@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const pty = require("@qwqo/node-pty");
+const manifest = require("@qwqo/node-pty/package.json");
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function smoke(options = {}) {
@@ -118,7 +119,8 @@ async function main() {
   await smoke();
   if (process.platform === "win32") {
     await smoke({ useConpty: true, useConptyDll: true });
-    await smoke({ useConpty: false });
+    if (manifest.nodePty.features?.winpty !== false)
+      await smoke({ useConpty: false });
   }
   await cleanup();
   console.log(

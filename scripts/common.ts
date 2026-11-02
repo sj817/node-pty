@@ -20,6 +20,7 @@ if (process.env.UPSTREAM_TAG) {
     tag: selected.tag,
     sha: selected.sha,
     version: selected.version,
+    sourceVersion: selected.packageVersion || selected.version,
   };
 }
 if (process.env.TEST_VERSION)
@@ -30,6 +31,7 @@ config.upstream = {
   tag: config.upstream.tag,
   version: config.upstream.version,
   sha: config.upstream.sha,
+  sourceVersion: config.upstream.sourceVersion || config.upstream.version,
 };
 export const readJson = (file: string) =>
   JSON.parse(readFileSync(file, "utf8"));
