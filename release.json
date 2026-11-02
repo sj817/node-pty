@@ -3,9 +3,10 @@
   "package": "@qwqo/node-pty",
   "upstream": {
     "repository": "microsoft/node-pty",
-    "tag": "v1.1.0",
-    "version": "1.1.0",
-    "sha": "1def5774632305246fe21f0f69e23a664d6c5910"
+    "tag": "v1.2.0-beta.17",
+    "version": "1.2.0-beta.17",
+    "sha": "02733b571b980b6418ff3bf2247f901463a58344",
+    "sourceVersion": "1.1.0"
   },
   "napi": 8,
   "buildNode": "22.23.4",
@@ -140,7 +141,7 @@
   "workflow": "publish.yml",
   "environment": "npm",
   "publication": {
-    "version": "0.0.2",
+    "version": "0.0.3",
     "tag": "next"
   },
   "muslRuntimes": [

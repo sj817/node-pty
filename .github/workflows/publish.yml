@@ -17,11 +17,11 @@ on:
       upstream_tag:
         description: Locked upstream tag used by the build
         type: string
-        default: v1.1.0
+        default: v1.2.0-beta.17
       test_version:
         description: Exact test version used by the build
         type: string
-        default: 0.0.2
+        default: 0.0.3
 env:
   ANDROID_PROOF: ${{ inputs.android_proof }}
   UPSTREAM_TAG: ${{ inputs.upstream_tag }}

@@ -4,7 +4,7 @@ Experimental prebuilt distribution of [microsoft/node-pty](https://github.com/mi
 
 ## Test releases
 
-Development uses versions `0.0.1` through `0.0.100` and the npm `next` tag. The first occupied version, `0.0.1`, is a binding placeholder. The withdrawn `1.1.0` release is unavailable. Testing continues with `0.0.2`.
+Development uses versions `0.0.1` through `0.0.100` and the npm `next` tag. The first occupied version, `0.0.1`, is a binding placeholder. The withdrawn `1.1.0` release is unavailable. Testing started with `0.0.2`. The next candidate is selected in `release.json`.
 
 ```sh
 npm install @qwqo/node-pty@next
@@ -83,7 +83,7 @@ Keep the package external to bundlers and unpack the complete main and platform 
 }
 ```
 
-CI runs real Electron main processes from both a directory and ASAR. macOS `spawn-helper` retains executable permissions. Windows packages include ConPTY, OpenConsole and WinPTY assets.
+CI runs real Electron main processes from both a directory and ASAR. macOS `spawn-helper` retains executable permissions. Windows packages include ConPTY and OpenConsole, plus WinPTY when the selected upstream tag still builds it.
 
 ## Historical tags and CI
 
@@ -119,3 +119,5 @@ Trusted Publishing bindings use `sj817/node-pty`, `publish.yml`, environment `np
 ## License
 
 The complete upstream MIT license and third-party licenses for WinPTY, node-addon-api and ConPTY are retained. The initial reviewed source is microsoft/node-pty `v1.1.0` at `1def5774632305246fe21f0f69e23a664d6c5910`. ConPTY licensing is sourced from microsoft/terminal commit `188822fa51dba7e11b64801483f4909db5fd020a`. Distribution modifications are MIT licensed.
+
+Static C++ runtime notices are included for Linux and Android. The notices are sourced from GCC releases/gcc-14.3.0 and LLVM llvmorg-18.1.8. Native builds record shared-library dependencies and reject an unexpected dynamic C++ runtime or glibc symbols above the configured baseline.
