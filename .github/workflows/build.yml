@@ -2,7 +2,27 @@ name: Build and verify tarballs
 on:
   push:
     branches: [main]
+    paths:
+      - release.json
+      - runtime/**
+      - scripts/build.ts
+      - scripts/common.ts
+      - package.json
+      - package-lock.json
+      - LICENSE
+      - licenses/**
+      - README.md
   pull_request:
+    paths:
+      - release.json
+      - runtime/**
+      - scripts/build.ts
+      - scripts/common.ts
+      - package.json
+      - package-lock.json
+      - LICENSE
+      - licenses/**
+      - README.md
   workflow_dispatch:
 permissions:
   contents: read
