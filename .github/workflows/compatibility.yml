@@ -24,37 +24,45 @@ jobs:
   plan:
     runs-on: ubuntu-22.04
     outputs:
-      matrix: ${{ steps.plan.outputs.matrix }}
+      matrix: ${{ steps.plan.outputs.verify }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: "24.22.1"
       - id: plan
-        run: node -e "require('fs').appendFileSync(process.env.GITHUB_OUTPUT,'matrix='+JSON.stringify({include:require('./release.json').platforms})+'\n')"
+        run: node scripts/plan.ts
   test:
     needs: plan
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    env:
+      TARGET_PLATFORM: ${{ matrix.id }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7.1.0
         with:
-          node-version: '24.22.1'
+          node-version: "24.22.1"
       - run: npm ci --ignore-scripts
       - run: node scripts/retest.ts
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ inputs.release }}
-      - if: runner.os == 'Linux'
+      - if: matrix.container
+        run: node scripts/container.ts verify
+      - if: matrix.libc == 'glibc'
         run: sudo apt-get update && sudo apt-get install -y xvfb libgtk-3-0 libnss3 libasound2 libgbm1
       - run: npm run verify
+        if: matrix.libc != 'musl'
         env:
           RUNTIME_MATRIX: ${{ inputs.runtimes }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: compatibility-${{ matrix.id }}
           path: dist/${{ matrix.id }}/verified.json

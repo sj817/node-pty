@@ -3,27 +3,29 @@ on:
   push:
     branches: [main]
     paths:
-      - release.json
-      - runtime/**
-      - scripts/build.ts
-      - scripts/common.ts
-      - package.json
-      - package-lock.json
-      - LICENSE
-      - licenses/**
-      - README.md
+      [
+        "release.json",
+        "runtime/**",
+        "scripts/**",
+        "test/**",
+        "package*.json",
+        "README.md",
+        ".github/workflows/build.yml",
+      ]
   pull_request:
-    paths:
-      - release.json
-      - runtime/**
-      - scripts/build.ts
-      - scripts/common.ts
-      - package.json
-      - package-lock.json
-      - LICENSE
-      - licenses/**
-      - README.md
   workflow_dispatch:
+    inputs:
+      upstream_tag:
+        description: Exact locked upstream tag to adapt and test
+        type: string
+        default: v1.1.0
+      test_version:
+        description: Unused 0.0.1 through 0.0.100 test version
+        type: string
+        default: 0.0.2
+env:
+  UPSTREAM_TAG: ${{ inputs.upstream_tag }}
+  TEST_VERSION: ${{ inputs.test_version }}
 permissions:
   contents: read
 concurrency:
@@ -33,76 +35,115 @@ jobs:
   plan:
     runs-on: ubuntu-22.04
     outputs:
-      matrix: ${{ steps.config.outputs.matrix }}
-      node: ${{ steps.config.outputs.node }}
+      native: ${{ steps.config.outputs.native }}
+      verify: ${{ steps.config.outputs.verify }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7.1.0
         with:
-          node-version: '24.22.1'
+          node-version: "24.22.1"
       - run: npm ci --ignore-scripts
+      - run: npm run lint
+      - run: npm run format:check
       - run: npm run typecheck
       - run: npm test
       - id: config
-        run: node -e "const c=require('./release.json');const fs=require('fs');fs.appendFileSync(process.env.GITHUB_OUTPUT,'matrix='+JSON.stringify({include:c.platforms})+'\nnode='+c.buildNode+'\n')"
+        run: node scripts/plan.ts
       - run: npm run gate
         env:
           GH_TOKEN: ${{ github.token }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7.0.2
         if: always()
         with:
           name: upstream-gate
           path: dist/gate.json
-  build:
+  native:
     needs: plan
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+      matrix: ${{ fromJSON(needs.plan.outputs.native) }}
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 40
+    timeout-minutes: 45
+    env:
+      TARGET_PLATFORM: ${{ matrix.id }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7.1.0
         with:
-          node-version: '24.22.1'
-      - uses: actions/setup-python@v5
+          node-version: "24.22.1"
+      - uses: actions/setup-python@v7.1.0
         with:
-          python-version: '3.12'
+          python-version: "3.12"
       - run: npm ci --ignore-scripts
-      - run: npm run build
-      - uses: actions/upload-artifact@v4
+      - name: Android NDK
+        if: matrix.os == 'android'
+        run: |
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'ndk;27.2.12479018'
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.2.12479018" >> "$GITHUB_ENV"
+      - run: node scripts/container.ts build
+        if: matrix.container
+      - run: npm run build:native
+        if: ${{ !matrix.container }}
+      - uses: actions/upload-artifact@v7.0.2
         with:
-          name: build-${{ matrix.id }}
+          name: native-${{ matrix.id }}
           path: dist/${{ matrix.id }}/
           if-no-files-found: error
-  verify:
-    needs: [plan, build]
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
-    runs-on: ${{ matrix.runner }}
-    timeout-minutes: 60
+  javascript:
+    needs: [plan, native]
+    runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7.1.0
         with:
-          node-version: '24.22.1'
+          node-version: "24.22.1"
       - run: npm ci --ignore-scripts
-      - uses: actions/download-artifact@v4
+      - run: npm run build:js
+      - uses: actions/upload-artifact@v7.0.2
         with:
-          name: build-${{ matrix.id }}
+          name: javascript
+          path: dist/main/
+          if-no-files-found: error
+  verify:
+    needs: [plan, native, javascript]
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.verify) }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    env:
+      TARGET_PLATFORM: ${{ matrix.id }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: "24.22.1"
+      - run: npm ci --ignore-scripts
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: native-${{ matrix.id }}
           path: dist/${{ matrix.id }}
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: javascript
+          path: dist/main
+      - name: Validate baseline or musl containers
+        if: matrix.container
+        run: node scripts/container.ts verify
       - name: Electron system libraries
-        if: runner.os == 'Linux'
+        if: matrix.libc == 'glibc'
         run: sudo apt-get update && sudo apt-get install -y xvfb libgtk-3-0 libnss3 libasound2 libgbm1
       - run: npm run verify
-      - uses: actions/upload-artifact@v4
+        if: matrix.libc != 'musl'
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: verified-${{ matrix.id }}
           path: dist/
@@ -111,23 +152,24 @@ jobs:
     needs: verify
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7.1.0
         with:
-          node-version: '24.22.1'
+          node-version: "24.22.1"
       - run: npm ci --ignore-scripts
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8.0.2
         with:
           pattern: verified-*
           path: dist
           merge-multiple: true
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: native-android-arm64
+          path: dist/android-arm64
       - run: node scripts/assemble.ts
-      - run: npm run publish:dry
-        env:
-          GH_TOKEN: ${{ github.token }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: release-bundle
           path: dist/bundle/

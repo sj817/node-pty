@@ -1,15 +1,31 @@
-name: Publish verified release
+name: Publish next test packages
 on:
   workflow_dispatch:
     inputs:
       run_id:
-        description: Successful Build and verify tarballs run ID
+        description: Successful build run from this exact commit
         required: true
         type: string
       dry_run:
         description: Validate without publishing
         type: boolean
         default: true
+      android_proof:
+        description: JSON proof from android-test.ts for the exact candidate tarballs
+        required: true
+        type: string
+      upstream_tag:
+        description: Locked upstream tag used by the build
+        type: string
+        default: v1.1.0
+      test_version:
+        description: Exact test version used by the build
+        type: string
+        default: 0.0.2
+env:
+  ANDROID_PROOF: ${{ inputs.android_proof }}
+  UPSTREAM_TAG: ${{ inputs.upstream_tag }}
+  TEST_VERSION: ${{ inputs.test_version }}
 permissions:
   contents: read
 concurrency:
@@ -26,24 +42,26 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RUN_ID: ${{ inputs.run_id }}
           REPO: ${{ github.repository }}
+          EXPECTED_SHA: ${{ github.sha }}
         run: |
           [[ "$RUN_ID" =~ ^[0-9]+$ ]] || exit 1
           gh api "repos/$REPO/actions/runs/$RUN_ID" > run.json
           jq -e '.conclusion == "success" and .head_branch == "main" and (.event == "push" or .event == "workflow_dispatch") and .path == ".github/workflows/build.yml"' run.json
+          test "$(jq -r .head_sha run.json)" = "$EXPECTED_SHA"
           echo "sha=$(jq -r .head_sha run.json)" >> "$GITHUB_OUTPUT"
   validate:
     needs: prepare
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.prepare.outputs.sha }}
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7.1.0
         with:
-          node-version: '24.22.1'
+          node-version: "24.22.1"
       - run: npm ci --ignore-scripts
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8.0.2
         with:
           name: release-bundle
           path: dist/bundle
@@ -60,15 +78,15 @@ jobs:
       contents: write
       actions: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.prepare.outputs.sha }}
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7.1.0
         with:
-          node-version: '24.22.1'
+          node-version: "24.22.1"
       - run: npm ci --ignore-scripts
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8.0.2
         with:
           name: release-bundle
           path: dist/bundle
@@ -86,18 +104,18 @@ jobs:
       actions: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.prepare.outputs.sha }}
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7.1.0
         with:
-          node-version: '24.22.1'
+          node-version: "24.22.1"
           registry-url: https://registry.npmjs.org
           package-manager-cache: false
       - run: npm install --global npm@12.2.1
       - run: npm ci --ignore-scripts
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8.0.2
         with:
           name: release-bundle
           path: dist/bundle
@@ -112,13 +130,13 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.prepare.outputs.sha }}
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7.1.0
         with:
-          node-version: '24.22.1'
+          node-version: "24.22.1"
       - run: node scripts/seal.ts --finalize
         env:
           GH_TOKEN: ${{ github.token }}

@@ -1,0 +1,604 @@
+[
+  {
+    "tag": "v1.2.0-beta.17",
+    "sha": "02733b571b980b6418ff3bf2247f901463a58344",
+    "version": "1.2.0-beta.17",
+    "api": "node-api",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v1.2.0-beta.15",
+    "sha": "8f218f6c194be81d98b1eeea344b150e83445824",
+    "version": "1.2.0-beta.15",
+    "api": "node-api",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v1.2.0-beta.14",
+    "sha": "372d3124403cc8da5a6cc38fc947daded42ea44a",
+    "version": "1.2.0-beta.14",
+    "api": "node-api",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v1.2.0-beta.13",
+    "sha": "fa83ecfccb901db7c518a5b018d97943506ec94c",
+    "version": "1.2.0-beta.13",
+    "api": "node-api",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v1.2.0-beta.12",
+    "sha": "fc30d875fed963259e10e40e1c70b20251a0e786",
+    "version": "1.2.0-beta.12",
+    "api": "node-api",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v1.2.0-beta.11",
+    "sha": "9ef6b00d4b848e535297365154bb9d0dab6e40c6",
+    "version": "1.2.0-beta.11",
+    "api": "node-api",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v1.2.0-beta.10",
+    "sha": "af053f22eb805e2f1afe5ddafe0f5a10d5157bf5",
+    "version": "1.2.0-beta.10",
+    "api": "node-api",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v1.2.0-beta.9",
+    "sha": "598652ca681cf28fcf65dee53b5dbe99dc764a67",
+    "version": "1.2.0-beta.9",
+    "api": "node-api",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v1.2.0-beta.8",
+    "sha": "c69dc6739da5db1abe13ae39b57fc73187ae9829",
+    "version": "1.2.0-beta.8",
+    "api": "node-api",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v1.2.0-beta.7",
+    "sha": "4c5c671aa9c45884c367f2d96aa6127987586121",
+    "version": "1.2.0-beta.7",
+    "api": "node-api",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v1.2.0-beta.6",
+    "sha": "ac22bd8937fc3671687093123fce2a3104c4af7a",
+    "version": "1.2.0-beta.6",
+    "api": "node-api",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v1.2.0-beta.5",
+    "sha": "ec5774601f5124928e9e96d7162c132766cc42f0",
+    "version": "1.2.0-beta.5",
+    "api": "node-api",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v1.2.0-beta.4",
+    "sha": "95b07ef255b11532a2cb447b2e6387a3c0127efb",
+    "version": "1.2.0-beta.4",
+    "api": "node-api",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v1.2.0-beta.3",
+    "sha": "f2288479db85391347d1e67deead62ac3827a44c",
+    "version": "1.2.0-beta.3",
+    "api": "node-api",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v1.2.0-beta.2",
+    "sha": "732ebf7b0006f70d9b323e18c1a256d110e6b628",
+    "version": "1.2.0-beta.2",
+    "api": "node-api",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v1.2.0-beta.1",
+    "sha": "7c34e584378c323f1735b61dc4d9ee4ad4168c12",
+    "version": "1.2.0-beta.1",
+    "api": "node-api",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v1.1.0",
+    "sha": "1def5774632305246fe21f0f69e23a664d6c5910",
+    "version": "1.1.0",
+    "api": "node-api",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v1.1.0-beta43",
+    "sha": "c1ee2b16225439e1a62851f23e3b19c1c13afedb",
+    "version": "1.1.0-beta43",
+    "api": "node-api",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v1.1.0-beta42",
+    "sha": "ccf63938885cb803c948b4b78bcad04ae9e26812",
+    "version": "1.1.0-beta42",
+    "api": "node-api",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v1.1.0-beta41",
+    "sha": "826032c0f6f490ac0c6c17926113d7e8fe3c38ca",
+    "version": "1.1.0-beta41",
+    "api": "node-api",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v1.1.0-beta40",
+    "sha": "ffb810bc5212341a15a20c5379f549c0a7317100",
+    "version": "1.1.0-beta40",
+    "api": "node-api",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v1.1.0-beta39",
+    "sha": "378549a5bb9df1d59e1097096c57528f8a0a4d0f",
+    "version": "1.1.0-beta39",
+    "api": "node-api",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v1.1.0-beta38",
+    "sha": "44b155d408eaa799d878f32979b10c74b08f9d53",
+    "version": "1.1.0-beta38",
+    "api": "node-api",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v1.1.0-beta37",
+    "sha": "30d3a49c24b46872526984e6a516c091f5481b71",
+    "version": "1.1.0-beta37",
+    "api": "node-api",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v1.1.0-beta36",
+    "sha": "aae6e7cd5f6ac8a62fa7f5eafe2c46666d76c50c",
+    "version": "1.1.0-beta36",
+    "api": "node-api",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v1.1.0-beta35",
+    "sha": "4d860e8e07c8a10c73922dce5ac18fd9855ca09a",
+    "version": "1.1.0-beta35",
+    "api": "node-api",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v1.1.0-beta34",
+    "sha": "d738123f1faf7287513b0df8b9e327be54702e94",
+    "version": "1.1.0-beta34",
+    "api": "node-api",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v1.1.0-beta33",
+    "sha": "56ae53bbf1f08bcaf095e68a8a71efccf5eb18dc",
+    "version": "1.1.0-beta33",
+    "api": "node-api",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v1.1.0-beta32",
+    "sha": "b10eafd01363b8de8247dcf771655e15084e4bde",
+    "version": "1.1.0-beta32",
+    "api": "node-api",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v1.1.0-beta31",
+    "sha": "467cea07c41320ba438a7c7591139b19eabfd5cc",
+    "version": "1.1.0-beta31",
+    "api": "node-api",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v1.1.0-beta29",
+    "sha": "298fec1c06a0919be045b3403f7f6808d578f0ee",
+    "version": "1.1.0-beta29",
+    "api": "node-api",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "1.0.0",
+    "sha": "d01f07df6acb4b0629a74f7a61423d4b87c81f91",
+    "version": "1.0.0",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "0.10.0",
+    "sha": "c5ccb80195ed9a1c889c14158a15303fd59cdd0d",
+    "version": "0.10.0",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "0.9.0",
+    "sha": "beac2b8c8badae230074d88cd0cd08da95daafc5",
+    "version": "0.9.0",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "0.8.1",
+    "sha": "783135c03c36d1d413b558834baae4cbec0544c4",
+    "version": "0.8.1",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "0.8.0",
+    "sha": "6a385f94c1c15bc9c7688eda4c3666f6fbceede6",
+    "version": "0.8.0",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "0.7.8",
+    "sha": "fd1a3290ebe89617d96b08b15a63a284c13f1fcf",
+    "version": "0.7.8",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "0.7.7",
+    "sha": "d66e6a3e4baf112ea9b4506bca736e65dd38d115",
+    "version": "0.7.7",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "0.7.6",
+    "sha": "2c1c0e78c8f110b4e3da87a3f9b88ebc9e7b33b8",
+    "version": "0.7.6",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "0.7.5",
+    "sha": "a9b59da4a8b2928e915abab50b2c2faa14743997",
+    "version": "0.7.5",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "0.7.4",
+    "sha": "50adadc91c78b482e614c2b1ea3b431cc09e5aa6",
+    "version": "0.7.4",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "0.7.3",
+    "sha": "e9c790871b55c8fe9920409f59fb12360adda999",
+    "version": "0.7.3",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "0.7.2",
+    "sha": "8085eae9bf5a71dea35f250a86db961bfbd85e21",
+    "version": "0.7.2",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "0.7.1",
+    "sha": "ac669a01a7f77713abae82c705dceec51db98482",
+    "version": "0.7.1",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "0.7.0",
+    "sha": "a1d161cba7396849116b94d8fa6bb0041a9a7ea6",
+    "version": "0.7.0",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "0.6.10",
+    "sha": "54af6d52bab80ac5823cb3cb8176491a0ace1041",
+    "version": "0.6.10",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "0.6.9",
+    "sha": "92b394fdb08dd4fa1c7962284bf80cd6c5b6e348",
+    "version": "0.6.9",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "0.6.8",
+    "sha": "085f1b180f7cfbb66e6656dd8dc95dbde685351f",
+    "version": "0.6.8",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "0.6.7",
+    "sha": "e899b87376c95c81187cee8bc4aad32d2d8aebdb",
+    "version": "0.6.7",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "0.6.6",
+    "sha": "8be7fb95d6cf703eec8dfde097e8e6c201b76749",
+    "version": "0.6.6",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "0.6.5",
+    "sha": "7cee8cede8fe2540b035afab5343c39b92d2c295",
+    "version": "0.6.5",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "0.6.4",
+    "sha": "ee0204bee015df627b3c8684560baaf4d46a94c1",
+    "version": "0.6.4",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "0.6.3",
+    "sha": "d2524d782603f116a0d454a949d5a9e3969784c5",
+    "version": "0.6.3",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "0.6.2",
+    "sha": "a3416484232c1d830f56a2d18f2ffdb15d19d849",
+    "version": "0.6.2",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "0.6.1",
+    "sha": "c93027b4d185183f55347968852c9fac748e6543",
+    "version": "0.6.1",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "0.6.0",
+    "sha": "31c9936ff23ae8a7c905746bef6c808bb67bc16f",
+    "version": "0.6.0",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "0.4.1",
+    "sha": "f55ad7eabc2c120c309545fb183d1e148e86f4a8",
+    "version": "0.4.1",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v0.3.0",
+    "sha": "70f07997cccfa36a523d973771e342f41f50c87c",
+    "version": "0.3.0",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v0.2.13",
+    "sha": "a2c2f7ac0e659ca8c7f765f12d7d674628c6f49e",
+    "version": "0.2.13",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v0.2.12",
+    "sha": "cd58363221c2440ae8ba74ad6216bb170676fb78",
+    "version": "0.2.12",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v0.2.11",
+    "sha": "b8c5fa2ecdbace340aad6a50443744f5a588cc46",
+    "version": "0.2.11",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v0.2.10",
+    "sha": "58378aa3c6c25a4714580e9e61bb929473486c6e",
+    "version": "0.2.10",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v0.2.9",
+    "sha": "457a970ed13b60ba1df12790a1dde1b5a49b1f8e",
+    "version": "0.2.9",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v0.2.8",
+    "sha": "dbfb57a8a69af75dff6ea1fec2b6f825e047186e",
+    "version": "0.2.8",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v0.2.7",
+    "sha": "ee32e72b53c5d07210f70c0b18a0969071e4b8af",
+    "version": "0.2.7",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v0.2.7-1",
+    "sha": "d58b587b5c4325997c8592600ae1e0a148025333",
+    "version": "0.2.7-1",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v0.2.6",
+    "sha": "7d4e37bdc3d783feb87466ce1bd697478dcc484b",
+    "version": "0.2.6",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v0.2.5",
+    "sha": "912c75b36d3632fd3df0711f36733ef7eabcfd66",
+    "version": "0.2.5",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v0.2.4",
+    "sha": "ef8eeae38a16e9b6256664a5c44f575f1c5c5660",
+    "version": "0.2.4",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v0.2.3",
+    "sha": "c9b62be46d9aa8ee35da4ad7b56e65f8f4ed1f8b",
+    "version": "0.2.3",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v0.2.2",
+    "sha": "88bce813e2a7a82b02f1bafc45f3d294db67e529",
+    "version": "0.2.2",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v0.2.1",
+    "sha": "c7a3d9c1702ccd115f2794ac3cda6830a118876e",
+    "version": "0.2.1",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v0.2.0",
+    "sha": "b33f0bb027fe401beca0401007ad38888e32cfe3",
+    "version": "0.2.0",
+    "api": "node-v8",
+    "sourcePath": "src/unix/pty.cc"
+  },
+  {
+    "tag": "v0.1.3",
+    "sha": "dd6b2008f8d5f7d8ecb249c7e2a9f235df355e6f",
+    "version": "0.1.3",
+    "api": "node-v8",
+    "sourcePath": "src/pty.cc"
+  },
+  {
+    "tag": "v0.1.2",
+    "sha": "a5ec0af9a306a86531fa69119cd62491fac8789b",
+    "version": "0.1.2",
+    "api": "node-v8",
+    "sourcePath": "src/pty.cc"
+  },
+  {
+    "tag": "v0.1.1",
+    "sha": "d5c0f00c6a951798e56214f57ac217461353d992",
+    "version": "0.1.1",
+    "api": "node-v8",
+    "sourcePath": "src/pty.cc"
+  },
+  {
+    "tag": "v0.1.0",
+    "sha": "8a52486a8ba43f2c7d8495814e6124a4dc291f6f",
+    "version": "0.1.0",
+    "api": "node-v8",
+    "sourcePath": "src/pty.cc"
+  },
+  {
+    "tag": "v0.0.9",
+    "sha": "a7b53aef5b978358fcd66092bfc8b03df2e1a29d",
+    "version": "0.0.9",
+    "api": "node-v8",
+    "sourcePath": "src/pty.cc"
+  },
+  {
+    "tag": "v0.0.8",
+    "sha": "1362a4f1362a8df3eb51183a1bafd6d6cbfd6daa",
+    "version": "0.0.8",
+    "api": "node-v8",
+    "sourcePath": "src/pty.cc"
+  },
+  {
+    "tag": "v0.0.7",
+    "sha": "55bbd9ca5d195e79f496acc99fc3a2de1ff9ba0c",
+    "version": "0.0.7",
+    "api": "node-v8",
+    "sourcePath": "src/pty.cc"
+  },
+  {
+    "tag": "v0.0.6",
+    "sha": "3995da25350a07cdb24e6e33d9f6d4f21384c05d",
+    "version": "0.0.6",
+    "api": "node-v8",
+    "sourcePath": "src/pty.cc"
+  },
+  {
+    "tag": "v0.0.5",
+    "sha": "120ca9d366f923005a8e73102cdb3e181a78935c",
+    "version": "0.0.5",
+    "api": "node-v8",
+    "sourcePath": "src/pty.cc"
+  },
+  {
+    "tag": "v0.0.4",
+    "sha": "a58aa8113674f06c9b2154df5265fcacebc176aa",
+    "version": "0.0.4",
+    "api": "node-v8",
+    "sourcePath": "src/pty.cc"
+  },
+  {
+    "tag": "v0.0.3",
+    "sha": "2cacf989501f570238e0ab4aae4a52b1587c67bd",
+    "version": "0.0.3",
+    "api": "node-v8",
+    "sourcePath": "src/pty.cc"
+  },
+  {
+    "tag": "v0.0.2",
+    "sha": "80450ae51e0434e3c5cbbe1026b14282b10071fd",
+    "version": "0.0.2",
+    "api": "node-v8",
+    "sourcePath": "src/pty.cc"
+  },
+  {
+    "tag": "v0.0.1",
+    "sha": "1c9dbb71498774b771ec08e9c63080cbe3ea90dd",
+    "version": "0.0.1",
+    "api": "node-v8",
+    "sourcePath": "src/pty.cc"
+  }
+]
