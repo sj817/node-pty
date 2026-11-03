@@ -39,10 +39,6 @@ async function smoke(options = {}) {
     }
   }, 30000);
   try {
-    await delay(300);
-    child.resize(103, 37);
-    assert.equal(child.cols, 103);
-    assert.equal(child.rows, 37);
     // Split the marker so input echo cannot satisfy the output assertion.
     child.write(
       win
@@ -52,6 +48,9 @@ async function smoke(options = {}) {
     for (let i = 0; i < 200 && !output.includes("PTY_SMOKE_OK"); i++)
       await delay(50);
     assert.match(output, /PTY_SMOKE_OK/);
+    child.resize(103, 37);
+    assert.equal(child.cols, 103);
+    assert.equal(child.rows, 37);
     if (!win) {
       child.write("stty size\n");
       for (let i = 0; i < 100 && !output.includes("37 103"); i++)
