@@ -20,7 +20,7 @@ import {
   writeJson,
   integrity,
   currentPlatform,
-  version,
+  version as configuredVersion,
 } from "./common.ts";
 
 const platform = currentPlatform();
@@ -28,6 +28,7 @@ const out = resolve(
   process.env.ARTIFACT_DIR || join(root, "dist", platform.id),
 );
 const build = readJson(join(out, "build.json"));
+const version = process.env.RETEST_VERSION || configuredVersion;
 if (build.platform !== platform.id || build.version !== version)
   throw new Error("Artifact platform/version mismatch");
 const mainDir = join(root, "dist/main");

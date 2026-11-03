@@ -16,8 +16,8 @@ import {
   jsonRequest,
 } from "./common.ts";
 import { completeVerification } from "./proof.ts";
-const tag = publication.mode === "test" ? `test-${version}` : `v${version}`;
-const title = `v${version}`;
+import { releaseTag } from "./version.ts";
+const tag = releaseTag(publication, config.upstream.version);
 const sha = run("git", ["rev-parse", "HEAD"], { capture: true });
 // GitHub omits draft releases from GET /releases/tags/:tag, but includes
 // them in the authenticated release list. Draft tags also lack a Git ref.
@@ -56,7 +56,7 @@ if (process.argv.includes("--finalize")) {
     `--prerelease=${publication.mode === "test" || publication.channel === "next"}`,
     `--latest=${publication.channel === "latest" && tags.latest === version}`,
     "--title",
-    title,
+    tag,
   ]);
   process.exit(0);
 }
@@ -78,7 +78,7 @@ if (!release) {
     "--draft",
     `--prerelease=${publication.mode === "test" || publication.channel === "next"}`,
     "--title",
-    title,
+    tag,
     "--notes",
     `npm ${publication.channel} build ${version}. Upstream ${config.upstream.tag} at ${config.upstream.sha}. Downstream revision ${publication.revision}. Runtime verification and checksums are in release-manifest.json.\n\n<!-- node-pty-release ${JSON.stringify({ version, upstream: config.upstream, publication, recipeKey: recipeKey(), sourceCommit: sha, buildRunId: manifest.buildRunId })} -->`,
   ]);

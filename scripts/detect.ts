@@ -11,6 +11,7 @@ import {
   readJson,
 } from "./common.ts";
 import { gate } from "./gate.ts";
+import { releaseTag } from "./version.ts";
 import { refreshTags, selectTags, sourceDiff } from "./upstream.ts";
 import {
   compatibilityKey,
@@ -92,7 +93,11 @@ async function main() {
       const record = registry.versions[version];
       if (record?.nodePty?.release?.mode !== "release") continue;
       const release = releases.find(
-        (item) => item.tag_name === `v${version}` && !item.draft,
+        (item) =>
+          [
+            `v${version}`,
+            releaseTag(record.nodePty.release, record.nodePty.upstream.version),
+          ].includes(item.tag_name) && !item.draft,
       );
       const asset = release?.assets.find(
         (item) => item.name === "release-manifest.json",

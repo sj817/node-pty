@@ -7,25 +7,36 @@ export type Publication = {
   revision: number;
 };
 
-export function releaseVersion(
-  upstream: string,
-  revision: number,
-  scale = 1000,
-): string {
+export function releaseVersion(upstream: string, revision: number): string {
   const source = semver.parse(upstream);
   if (
     !source ||
     !Number.isSafeInteger(revision) ||
     revision < 0 ||
-    revision >= scale
+    revision >= 1000
   )
     throw new Error("Invalid upstream version or downstream revision");
-  const patch = source.patch * scale;
-  if (!Number.isSafeInteger(patch + revision))
+  if (!Number.isSafeInteger(source.patch + revision))
     throw new Error("Version exceeds the supported patch range");
-  if (source.prerelease.length)
-    return `${source.major}.${source.minor}.${patch}-${source.prerelease.join(".")}.qwqo.${revision}`;
-  return `${source.major}.${source.minor}.${patch + revision}`;
+  if (revision === 0) return source.version;
+  if (source.prerelease.length) return `${source.version}.${revision}`;
+  return `${source.major}.${source.minor}.${source.patch + revision}`;
+}
+
+export function releaseTag(
+  publication: Publication,
+  upstream?: string,
+): string {
+  // Already published npm versions are immutable. Their corrected GitHub tags
+  // omit the old automatic suffix while their manifests retain the npm identity.
+  const version =
+    publication.mode === "release" &&
+    publication.revision === 0 &&
+    upstream &&
+    publication.version === `${upstream}.qwqo.0`
+      ? upstream
+      : publication.version;
+  return `v${version}`;
 }
 
 export function publicationFor(

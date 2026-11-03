@@ -13,7 +13,7 @@ import {
   run,
   writeJson,
 } from "./common.ts";
-import { publicationFor, type Publication } from "./version.ts";
+import { publicationFor, releaseTag, type Publication } from "./version.ts";
 
 type PublishedRecord = {
   version: string;
@@ -46,7 +46,10 @@ export function sealedVersions(releases): Record<string, PublishedRecord> {
     const record = JSON.parse(match[1]);
     if (record.publication?.mode !== "release") continue;
     if (
-      release.tag_name !== `v${record.version}` ||
+      ![
+        `v${record.version}`,
+        releaseTag(record.publication, record.upstream?.version),
+      ].includes(release.tag_name) ||
       record.publication.version !== record.version ||
       !/^[a-f0-9]{40}$/.test(record.upstream?.sha) ||
       !/^[a-f0-9]{40}$/.test(record.sourceCommit) ||
@@ -81,6 +84,7 @@ export function candidatePublication(
   if (previous.some((record) => record.nodePty.upstream.sha !== tag.sha))
     throw new Error(`Conflicting upstream SHA for ${tag.tag}`);
   const latest = previous[0];
+  if (latest?.nodePty.recipeKey === key) return latest.nodePty.release;
   const revision = latest
     ? latest.nodePty.release.revision + Number(latest.nodePty.recipeKey !== key)
     : 0;
@@ -133,8 +137,14 @@ export function candidateState(
       reason:
         "Existing npm version does not match the planned source and recipe",
     };
-  const sealed = releases.find(
-    (release) => release.tag_name === `v${candidate.publication.version}`,
+  const sealed = releases.find((release) =>
+    [
+      `v${candidate.publication.version}`,
+      releaseTag(
+        candidate.publication,
+        record?.nodePty?.upstream.version || candidate.version,
+      ),
+    ].includes(release.tag_name),
   );
   if (record && sealed && !sealed.draft) return { state: "published" };
   const matching = builds.filter(

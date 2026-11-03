@@ -52,20 +52,22 @@ Publication runs use an immutable `ci/<build-commit>` Git ref. npm provenance th
 
 Finish in-flight publications before changing workflow files. GitHub checks workflow-file permissions when creating releases for commits whose workflows differ from the default branch; see the [release API requirements](https://docs.github.com/en/rest/releases/releases#create-a-release).
 
-GitHub release titles use the npm version prefixed with `v`, such as `v1.1.1` or `v1.2.0-beta.17.qwqo.0`. Assets use names such as `node-pty.tgz`, `node-pty-darwin-arm64.tgz`, `node-pty-linux-x64-musl.tgz` and `node-pty-android-arm64.tgz`. Version information lives in package metadata, the Git tag and `release-manifest.json`. npm controls its own registry download URLs.
+GitHub tags retain normal version names, such as `v1.1.1` or `v1.2.0-beta.17`. Each release title is exactly its tag name. Assets use names such as `node-pty.tgz`, `node-pty-darwin-arm64.tgz`, `node-pty-linux-x64-musl.tgz` and `node-pty-android-arm64.tgz`. Version information lives in package metadata, the Git tag and `release-manifest.json`. npm controls its own registry download URLs.
 
 ## Version mapping
 
-Each upstream stable patch reserves 1,000 downstream revisions. For upstream `M.m.p` and revision `r`, the npm version is `M.m.(p * 1000 + r)`, with `r` from 0 through 999. Prereleases retain their identifiers and append `.qwqo.r` after the encoded patch. This preserves SemVer ordering across upstream patches, beta sequences and downstream rebuilds.
+Normal releases preserve the upstream version exactly. Revision zero adds no suffix and does not transform the patch number. An actual downstream revision increments the stable patch or appends a numeric prerelease revision. A collision with an existing npm version from a different source stops publication for review.
 
-| Upstream        | Revision | npm version            | Channel  |
-| --------------- | -------- | ---------------------- | -------- |
-| `1.1.0`         | 1        | `1.1.1`                | `latest` |
-| `1.1.1`         | 0        | `1.1.1000`             | `latest` |
-| `1.2.0-beta.17` | 0        | `1.2.0-beta.17.qwqo.0` | `next`   |
-| `1.2.0-beta.17` | 1        | `1.2.0-beta.17.qwqo.1` | `next`   |
+| Upstream        | Revision | npm version       | Channel  |
+| --------------- | -------- | ----------------- | -------- |
+| `1.1.0`         | 1        | `1.1.1`           | `latest` |
+| `1.1.1`         | 0        | `1.1.1`           | `latest` |
+| `1.2.0-beta.17` | 0        | `1.2.0-beta.17`   | `next`   |
+| `1.2.0-beta.17` | 1        | `1.2.0-beta.17.1` | `next`   |
 
 The initial `1.1.0` npm version was withdrawn and remains reserved, so its first production backfill starts at revision 1. `SOURCE.json`, `nodePty.upstream` and the release manifest identify the exact upstream version, SHA and downstream revision. Backfilling an older version retains a newer channel target.
+
+Earlier beta packages were published with an automatic `.qwqo.0` suffix. npm cannot rename those versions. Their manifests retain the published npm identity; the corrected GitHub tags use the original beta versions. Synchronization recognizes these existing packages without republishing them.
 
 ## Platform validation
 

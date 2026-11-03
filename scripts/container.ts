@@ -46,6 +46,8 @@ tar -xJf /tmp/node.tar.xz --strip-components=1 -C /opt/node-pty-node
     "-e",
     `DOWNSTREAM_REVISION=${publication.revision}`,
     "-e",
+    `RETEST_VERSION=${mode === "verify" ? process.env.RETEST_VERSION || "" : ""}`,
+    "-e",
     `PROOF_NAME=${proof}`,
     "-e",
     "CURRENT_NODE_ONLY=1",

@@ -4,6 +4,7 @@ import semver from "semver";
 import {
   assertPublication,
   publicationFor,
+  releaseTag,
   releaseVersion,
   shouldPromote,
 } from "../scripts/version.ts";
@@ -91,13 +92,11 @@ test("multiple completed candidates wait behind the active publication without r
   );
 });
 
-test("upstream versions and downstream revisions occupy disjoint stable slots", () => {
+test("normal upstream versions retain their exact version without a downstream suffix", () => {
   assert.equal(publicationFor("1.1.0", 0, ["1.1.0"]).version, "1.1.1");
-  assert.equal(releaseVersion("1.1.1", 0), "1.1.1000");
-  assert.ok(
-    semver.lt(releaseVersion("1.1.0", 999), releaseVersion("1.1.1", 0)),
-  );
-  assert.equal(releaseVersion("1.2.0-beta.17", 2), "1.2.0-beta.17.qwqo.2");
+  for (const version of ["1.1.1", "1.2.0-beta.4", "1.2.0-beta.17"])
+    assert.equal(releaseVersion(version, 0), version);
+  assert.equal(releaseVersion("1.2.0-beta.17", 2), "1.2.0-beta.17.2");
   assert.ok(
     semver.lt(
       releaseVersion("1.2.0-beta.17", 999),
@@ -111,14 +110,75 @@ test("upstream versions and downstream revisions occupy disjoint stable slots", 
     assert.throws(() => releaseVersion("1.1.0", revision));
 });
 
+test("corrected tags retain immutable npm identities without queueing duplicate publications", () => {
+  const upstream = { version: "1.2.0-beta.4", sha: "a".repeat(40) };
+  const publication = {
+    mode: "release" as const,
+    version: "1.2.0-beta.4.qwqo.0",
+    channel: "next" as const,
+    revision: 0,
+  };
+  const recipeKey = "b".repeat(64);
+  const release = {
+    tag_name: "v1.2.0-beta.4",
+    draft: false,
+    body: `<!-- node-pty-release ${JSON.stringify({
+      version: publication.version,
+      publication,
+      upstream,
+      recipeKey,
+      sourceCommit: "c".repeat(40),
+      buildRunId: "123",
+    })} -->`,
+  };
+  const versions = sealedVersions([release]);
+  assert.equal(releaseTag(publication, upstream.version), release.tag_name);
+  assert.deepEqual(
+    candidatePublication(upstream, versions, recipeKey),
+    publication,
+  );
+  assert.equal(
+    candidateState(
+      { ...upstream, publication, recipeKey },
+      versions,
+      [],
+      [],
+      [release],
+    ).state,
+    "published",
+  );
+  assert.equal(releaseTag(publicationFor("1.2.0-beta.4")), "v1.2.0-beta.4");
+  assert.equal(releaseTag(publicationFor("1.2.0", 0, [], "0.0.4")), "v0.0.4");
+});
+
+test("an occupied normal version from another upstream source blocks publication", () => {
+  const existing = record("1.1.0", 1);
+  assert.equal(existing.version, "1.1.1");
+  assert.equal(
+    candidateState(
+      {
+        version: "1.1.1",
+        sha: "new-source",
+        recipeKey: "new-recipe",
+        publication: publicationFor("1.1.1"),
+      },
+      { [existing.version]: existing },
+      [],
+      [],
+      [],
+    ).state,
+    "conflict",
+  );
+});
+
 test("stable and prerelease channels remain separate, including legacy beta spellings", () => {
   assert.equal(publicationFor("1.1.0").channel, "latest");
   assert.equal(publicationFor("1.1.0-beta43").channel, "next");
   assert.equal(publicationFor("1.2.0-beta.17").channel, "next");
   assertPublication("1.1.1", "latest");
-  assertPublication("1.2.0-beta.17.qwqo.0", "next");
+  assertPublication("1.2.0-beta.17", "next");
   assert.throws(() => assertPublication("1.1.1", "next"));
-  assert.throws(() => assertPublication("1.2.0-beta.17.qwqo.0", "latest"));
+  assert.throws(() => assertPublication("1.2.0-beta.17", "latest"));
 });
 
 test("out-of-order backfills retain the newest verified release in each channel", () => {
