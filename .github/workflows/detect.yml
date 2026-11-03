@@ -24,7 +24,14 @@ on:
         description: Optional producer run to wait for before inspecting the queue
         type: string
   workflow_run:
-    workflows: ["Build and verify tarballs", "Publish packages"]
+    workflows:
+      [
+        "Build and verify tarballs",
+        "Build candidate",
+        "build-*",
+        "Publish packages",
+        "publish-*",
+      ]
     types: [completed]
 permissions:
   contents: write
