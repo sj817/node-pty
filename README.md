@@ -103,6 +103,8 @@ Keep the package external to bundlers and unpack the complete main and platform 
 
 CI runs real Electron main processes from both a directory and ASAR. macOS `spawn-helper` retains executable permissions. Windows packages include ConPTY and OpenConsole, plus WinPTY when the selected upstream tag still builds it.
 
+With upstream `v1.1.0`, an additional local nested pseudo-console test could not start forced WinPTY (`useConpty: false`). Default ConPTY passed the PTY and descendant cleanup checks, while the upstream console-list helper logged `AttachConsole failed` during shutdown. These terminal-host limitations are separate from the passing hosted Windows CI matrix.
+
 ## Historical tags and CI
 
 `upstream-tags.json` locks all discovered tags to SHAs and records their native-interface family and observed CI profile. The supported backfill floor is `v1.1.0`. It includes every existing `1.2.0-beta.*` tag. Earlier `1.1.0-beta*` and legacy Node/V8 releases are outside this range.
