@@ -73,6 +73,9 @@ for (const pkg of config.androidRuntime.packages) {
   assert.ok(data, `Missing data archive in ${pkg.name}`);
   run("tar", ["-xf", join(folder, data), "-C", runtime]);
 }
+// Debian archive directories can retain app-private modes under the host UID.
+// The container's system user needs to traverse this read-only runtime fixture.
+run("chmod", ["-R", "a+rX", runtime]);
 for (const [name, version] of [
   ["npm", config.publishNpm],
   ["pnpm", config.pnpm],
