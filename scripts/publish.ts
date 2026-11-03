@@ -9,8 +9,11 @@ import {
   jsonRequest,
   version,
   buildKey,
-  assertTestPublication,
+  publication,
+  releasePlatforms,
+  packageName,
 } from "./common.ts";
+import { assertPublication, shouldPromote } from "./version.ts";
 import { gate } from "./gate.ts";
 import { completeVerification } from "./proof.ts";
 
@@ -40,7 +43,7 @@ export async function publishPackages(
   tag,
   dryRun = false,
 ) {
-  for (const pkg of packages) assertTestPublication(pkg.version, tag);
+  for (const pkg of packages) assertPublication(pkg.version, tag);
   const existing = Object.fromEntries(
     await Promise.all(
       packages.map(async (pkg) => [pkg.name, await adapter.get(pkg)]),
@@ -74,6 +77,20 @@ async function main() {
     throw new Error(
       "Release manifest does not match checked-out source/configuration",
     );
+  if (JSON.stringify(manifest.publication) !== JSON.stringify(publication))
+    throw new Error("Publication mapping does not match the verified manifest");
+  const expectedNames = [
+    config.package,
+    ...releasePlatforms.map(packageName),
+  ].sort();
+  if (
+    JSON.stringify(manifest.packages.map((pkg) => pkg.name).sort()) !==
+      JSON.stringify(expectedNames) ||
+    manifest.packages.some((pkg) => pkg.version !== version)
+  )
+    throw new Error(
+      "The main package and every supported platform must have the same version",
+    );
   const gateResult = await gate();
   if (!gateResult.ready)
     throw new Error(
@@ -98,7 +115,9 @@ async function main() {
         "public",
         "--provenance",
         "--tag",
-        "candidate",
+        publication.mode === "test"
+          ? "candidate"
+          : `candidate-${publication.channel}`,
         "--registry",
         registry,
       ]);
@@ -145,11 +164,18 @@ async function main() {
         `${registry}/-/package/${encodeURIComponent(pkg.name)}/dist-tags`,
       );
       if (tags[tag] === pkg.version) return;
-      const { default: semver } = await import("semver");
-      if (tags[tag] && semver.gt(tags[tag], pkg.version))
-        throw new Error(
-          `Refusing to move ${pkg.name}:${tag} backwards from ${tags[tag]}`,
+      const current = tags[tag]
+        ? await jsonRequest(
+            `${registry}/${encodeURIComponent(pkg.name)}/${tags[tag]}`,
+          )
+        : null;
+      const candidate = await adapter.get(pkg);
+      if (!shouldPromote(current, candidate, tag)) {
+        console.log(
+          `Keeping newer ${pkg.name}:${tag} at ${tags[tag]} while backfilling ${pkg.version}`,
         );
+        return;
+      }
       run("npm", [
         "dist-tag",
         "add",
@@ -164,7 +190,7 @@ async function main() {
     manifest.packages,
     adapter,
     config.package,
-    config.publication.tag,
+    publication.channel,
     process.argv.includes("--dry-run"),
   );
   console.log(JSON.stringify(plan, null, 2));

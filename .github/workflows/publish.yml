@@ -1,9 +1,10 @@
-name: Publish next test packages
+name: Publish packages
+run-name: publish-${{ inputs.run_id }}${{ inputs.dry_run && '-preview' || '' }}
 on:
   workflow_dispatch:
     inputs:
       run_id:
-        description: Successful build run from this exact commit
+        description: Successful main-branch build run
         required: true
         type: string
       dry_run:
@@ -11,23 +12,11 @@ on:
         type: boolean
         default: true
       android_proof:
-        description: JSON proof from android-test.ts for the exact candidate tarballs
-        required: true
+        description: Optional Android proof when the build bundle is awaiting device verification
         type: string
-      upstream_tag:
-        description: Locked upstream tag used by the build
-        type: string
-        default: v1.2.0-beta.17
-      test_version:
-        description: Exact test version used by the build
-        type: string
-        default: 0.0.4
-env:
-  ANDROID_PROOF: ${{ inputs.android_proof }}
-  UPSTREAM_TAG: ${{ inputs.upstream_tag }}
-  TEST_VERSION: ${{ inputs.test_version }}
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: npm-publication
   cancel-in-progress: false
@@ -35,23 +24,34 @@ jobs:
   prepare:
     runs-on: ubuntu-22.04
     outputs:
-      sha: ${{ steps.run.outputs.sha }}
+      sha: ${{ steps.source.outputs.sha }}
+      upstream_tag: ${{ steps.source.outputs.upstream_tag }}
+      revision: ${{ steps.source.outputs.revision }}
+      test_version: ${{ steps.source.outputs.test_version }}
+      ready: ${{ steps.source.outputs.ready }}
     steps:
-      - id: run
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: "24.22.1"
+      - run: npm ci --ignore-scripts
+      - id: source
+        run: node scripts/prepare-publish.ts
         env:
           GH_TOKEN: ${{ github.token }}
-          RUN_ID: ${{ inputs.run_id }}
-          REPO: ${{ github.repository }}
-          EXPECTED_SHA: ${{ github.sha }}
-        run: |
-          [[ "$RUN_ID" =~ ^[0-9]+$ ]] || exit 1
-          gh api "repos/$REPO/actions/runs/$RUN_ID" > run.json
-          jq -e '.conclusion == "success" and .head_branch == "main" and (.event == "push" or .event == "workflow_dispatch") and .path == ".github/workflows/build.yml"' run.json
-          test "$(jq -r .head_sha run.json)" = "$EXPECTED_SHA"
-          echo "sha=$(jq -r .head_sha run.json)" >> "$GITHUB_OUTPUT"
+          BUILD_RUN_ID: ${{ inputs.run_id }}
+          ANDROID_PROOF: ${{ inputs.android_proof }}
   validate:
     needs: prepare
+    if: needs.prepare.outputs.ready == 'true'
     runs-on: ubuntu-22.04
+    env:
+      UPSTREAM_TAG: ${{ needs.prepare.outputs.upstream_tag }}
+      DOWNSTREAM_REVISION: ${{ needs.prepare.outputs.revision }}
+      TEST_VERSION: ${{ needs.prepare.outputs.test_version }}
+      ANDROID_PROOF: ${{ inputs.android_proof }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -77,6 +77,11 @@ jobs:
     permissions:
       contents: write
       actions: read
+    env:
+      UPSTREAM_TAG: ${{ needs.prepare.outputs.upstream_tag }}
+      DOWNSTREAM_REVISION: ${{ needs.prepare.outputs.revision }}
+      TEST_VERSION: ${{ needs.prepare.outputs.test_version }}
+      ANDROID_PROOF: ${{ inputs.android_proof }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -103,6 +108,11 @@ jobs:
       contents: read
       actions: read
       id-token: write
+    env:
+      UPSTREAM_TAG: ${{ needs.prepare.outputs.upstream_tag }}
+      DOWNSTREAM_REVISION: ${{ needs.prepare.outputs.revision }}
+      TEST_VERSION: ${{ needs.prepare.outputs.test_version }}
+      ANDROID_PROOF: ${{ inputs.android_proof }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -129,6 +139,10 @@ jobs:
     runs-on: ubuntu-22.04
     permissions:
       contents: write
+    env:
+      UPSTREAM_TAG: ${{ needs.prepare.outputs.upstream_tag }}
+      DOWNSTREAM_REVISION: ${{ needs.prepare.outputs.revision }}
+      TEST_VERSION: ${{ needs.prepare.outputs.test_version }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:

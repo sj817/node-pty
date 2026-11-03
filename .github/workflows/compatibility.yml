@@ -21,6 +21,13 @@ concurrency:
   group: compatibility-${{ inputs.key }}
   cancel-in-progress: false
 jobs:
+  android:
+    permissions:
+      contents: read
+      actions: read
+    uses: ./.github/workflows/android.yml
+    with:
+      release: ${{ inputs.release }}
   plan:
     runs-on: ubuntu-22.04
     outputs:
@@ -42,6 +49,7 @@ jobs:
       matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     env:
       TARGET_PLATFORM: ${{ matrix.id }}
+      RUNTIME_MATRIX: ${{ inputs.runtimes }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:

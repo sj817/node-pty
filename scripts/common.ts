@@ -3,6 +3,8 @@ import { readFileSync, writeFileSync, mkdirSync, readdirSync } from "node:fs";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
+import { publicationFor } from "./version.ts";
+export { assertTestPublication } from "./version.ts";
 
 export const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 export const config = JSON.parse(
@@ -23,8 +25,6 @@ if (process.env.UPSTREAM_TAG) {
     sourceVersion: selected.packageVersion || selected.version,
   };
 }
-if (process.env.TEST_VERSION)
-  config.publication.version = process.env.TEST_VERSION;
 // Keep metadata bytes identical for default and explicitly selected tags.
 config.upstream = {
   repository: config.upstream.repository,
@@ -81,23 +81,26 @@ export function files(dir: string, prefix = ""): string[] {
       return entry.isDirectory() ? files(join(dir, entry.name), path) : [path];
     });
 }
-export function assertTestPublication(value: string, tag: string): void {
-  if (!/^0\.0\.(?:[1-9]|[1-9][0-9]|100)$/.test(value) || tag !== "next") {
-    throw new Error(
-      "Publishing is restricted to 0.0.1 through 0.0.100 under the next tag",
-    );
-  }
-}
-export const version = config.publication.version;
-assertTestPublication(version, config.publication.tag);
+export const publication = publicationFor(
+  config.upstream.version,
+  Number(process.env.DOWNSTREAM_REVISION ?? config.publication.revision ?? 0),
+  config.versioning?.reserved || [],
+  process.env.TEST_VERSION ||
+    (config.publication.mode === "test"
+      ? config.publication.version
+      : undefined),
+);
+config.publication = { ...publication, tag: publication.channel };
+export const version = publication.version;
 export const releasePlatforms = config.platforms.filter((p) => p.publish);
-export function buildKey() {
+export function recipeKey(upstream = config.upstream) {
   const paths = [
     "package-lock.json",
     "scripts/build.ts",
     "scripts/container.ts",
     "scripts/adapt.ts",
     "scripts/common.ts",
+    "scripts/version.ts",
     "runtime/loader.ts",
     "runtime/entry.ts",
     "LICENSE",
@@ -106,8 +109,13 @@ export function buildKey() {
   ];
   return hash(
     JSON.stringify({
-      upstream: config.upstream,
-      version,
+      upstream: {
+        repository: upstream.repository || config.upstream.repository,
+        version: upstream.version,
+        sha: upstream.sha,
+        sourceVersion:
+          upstream.sourceVersion || upstream.packageVersion || upstream.version,
+      },
       napi: config.napi,
       node: config.buildNode,
       buildHostNode: config.publishNode,
@@ -118,6 +126,9 @@ export function buildKey() {
       ]),
     }),
   );
+}
+export function buildKey() {
+  return hash(JSON.stringify({ recipeKey: recipeKey(), publication }));
 }
 type RequestOptions = {
   allow404?: boolean;

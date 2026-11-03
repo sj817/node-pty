@@ -9,6 +9,7 @@
     "verify": "node scripts/verify.ts",
     "gate": "node scripts/gate.ts",
     "detect": "node scripts/detect.ts",
+    "sync:plan": "node scripts/sync.ts",
     "publish:dry": "node scripts/publish.ts --dry-run",
     "trust:prepare": "node scripts/trust.ts",
     "lint": "eslint .",

@@ -1,16 +1,37 @@
 name: Track upstream and runtimes
 on:
   schedule:
-    - cron: "23 6 * * *"
+    - cron: "*/15 * * * *"
+  push:
+    branches: [main]
+    paths:
+      [
+        "release.json",
+        "upstream-tags.json",
+        "runtime/**",
+        "scripts/**",
+        "test/**",
+        "package*.json",
+        ".github/workflows/**",
+      ]
   workflow_dispatch:
+    inputs:
+      apply:
+        description: Pin new tags and dispatch queued builds/publications
+        type: boolean
+        default: false
+  workflow_run:
+    workflows: ["Build and verify tarballs", "Publish packages"]
+    types: [completed]
 permissions:
-  contents: read
+  contents: write
   actions: write
 concurrency:
   group: upstream-detection
   cancel-in-progress: false
 jobs:
   detect:
+    if: github.event_name != 'workflow_run' || ((github.event.workflow_run.head_branch == 'main' || (github.event.workflow_run.name == 'Publish packages' && startsWith(github.event.workflow_run.head_branch, 'ci/'))) && github.event.workflow_run.head_repository.full_name == github.repository && github.event.workflow_run.event == 'workflow_dispatch')
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v7.0.1
@@ -23,17 +44,23 @@ jobs:
       - run: npm run detect
         env:
           GH_TOKEN: ${{ github.token }}
-          DISPATCH_COMPATIBILITY: "1"
+          DISPATCH_COMPATIBILITY: ${{ (inputs.apply || github.event_name == 'schedule' || github.event_name == 'workflow_run') && '1' || '0' }}
+      - run: npm run sync:plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DISPATCH_SYNC: ${{ (inputs.apply || github.event_name == 'schedule' || github.event_name == 'workflow_run') && '1' || '0' }}
       - uses: actions/upload-artifact@v7.0.2
         if: always()
         with:
           name: detection
-          path: dist/detection.json
+          path: |
+            dist/detection.json
+            dist/sync-plan.json
       - name: Show pending states
         if: always()
         run: |
-          if test -f dist/detection.json; then
+          if test -f dist/sync-plan.json; then
             echo '```json' >> "$GITHUB_STEP_SUMMARY"
-            cat dist/detection.json >> "$GITHUB_STEP_SUMMARY"
+            cat dist/sync-plan.json >> "$GITHUB_STEP_SUMMARY"
             echo '```' >> "$GITHUB_STEP_SUMMARY"
           fi

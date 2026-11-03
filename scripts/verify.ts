@@ -11,6 +11,7 @@ import {
 import { createRequire } from "node:module";
 import { createPackageWithOptions } from "@electron/asar";
 import { compileEsm } from "./adapt.ts";
+import { verificationRecipe } from "./runtimes.ts";
 import {
   config,
   root,
@@ -276,6 +277,7 @@ try {
       glibc: report.header.glibcVersionRuntime,
     },
     testedAt: new Date().toISOString(),
+    verificationRecipe: verificationRecipe(),
   });
 } finally {
   server.kill();

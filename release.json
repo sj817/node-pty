@@ -140,12 +140,82 @@
   "workflow": "publish.yml",
   "environment": "npm",
   "publication": {
-    "version": "0.0.4",
-    "tag": "next"
+    "mode": "release",
+    "revision": 0
+  },
+  "versioning": {
+    "reserved": ["1.1.0"]
+  },
+  "sync": {
+    "enabled": false,
+    "minimumUpstream": "1.1.0",
+    "maxInFlight": 2
   },
   "muslRuntimes": [
     "node@sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914",
     "node@sha256:8a32c8cf649a49915a66e81e7a609223c708d0adabf288ee3f4077d765542f85",
     "node@sha256:c6ad9e9c1d80f6eb607c26b4b0a132ff7a2344fad1c78ea3baa2a7d4c8de6d94"
-  ]
+  ],
+  "androidRuntime": {
+    "image": "termux/termux-docker@sha256:ce1a9ae1929ae15918562b9781878b6b9b3f127e9c2b7e90678702469a9deece",
+    "source": "termux/termux-docker",
+    "sourceCommit": "7033c7639eb86107a4fdf8b72bd6388c07b1284a",
+    "packages": [
+      {
+        "name": "nodejs-lts",
+        "version": "24.22.2",
+        "url": "https://packages.termux.dev/apt/termux-main/pool/main/n/nodejs-lts/nodejs-lts_24.22.2_aarch64.deb",
+        "sha256": "150d7dd382e92587808d96813b9538fe5c6c41fa33f1a1033daa4e30c6ff2695"
+      },
+      {
+        "name": "zlib",
+        "version": "1.3.2",
+        "url": "https://packages.termux.dev/apt/termux-main/pool/main/z/zlib/zlib_1.3.2_aarch64.deb",
+        "sha256": "75e7d0af17fcc3b40004309fdc00a1ddb9ae08346dce5e269902c34ac3966ac9"
+      },
+      {
+        "name": "libsqlite",
+        "version": "3.54.1-1",
+        "url": "https://packages.termux.dev/apt/termux-main/pool/main/libs/libsqlite/libsqlite_3.54.1-1_aarch64.deb",
+        "sha256": "661fb995f7215845007b222a85266ae99d9443e87e0604f8677edfd738e6b81a"
+      },
+      {
+        "name": "libicu",
+        "version": "78.3",
+        "url": "https://packages.termux.dev/apt/termux-main/pool/main/libi/libicu/libicu_78.3_aarch64.deb",
+        "sha256": "f536403f65a08fe0df6e7304184e902d54def77d5c3bd5edfd9109d57601d276"
+      },
+      {
+        "name": "libc++",
+        "version": "30",
+        "url": "https://packages.termux.dev/apt/termux-main/pool/main/libc/libc++/libc++_30_aarch64.deb",
+        "sha256": "53d0b84a7ba7459024257cb94d5b136fe13ef858567f65a8064b35950799f2ca"
+      },
+      {
+        "name": "c-ares",
+        "version": "1.34.9",
+        "url": "https://packages.termux.dev/apt/termux-main/pool/main/c/c-ares/c-ares_1.34.9_aarch64.deb",
+        "sha256": "623d84855e176f3f2a415d24c0e1d2f529356f4b5439bb3313e6d7ff0da4585c"
+      },
+      {
+        "name": "resolv-conf",
+        "version": "1.3",
+        "url": "https://packages.termux.dev/apt/termux-main/pool/main/r/resolv-conf/resolv-conf_1.3_aarch64.deb",
+        "sha256": "ab541abac8e0c81709cd7ca4a02bcfa0d60ba1f4bfe7fd6dce4a694a4a9dfffa"
+      },
+      {
+        "name": "openssl",
+        "version": "1:3.6.5",
+        "url": "https://packages.termux.dev/apt/termux-main/pool/main/o/openssl/openssl_1:3.6.5_aarch64.deb",
+        "sha256": "a2fb7856875e63ef6b90442752e05974813372c3ca86d2513a78ea43c67a0f8b"
+      },
+      {
+        "name": "ca-certificates",
+        "version": "1:2026.10.20-1",
+        "url": "https://packages.termux.dev/apt/termux-main/pool/main/c/ca-certificates/ca-certificates_1:2026.10.20-1_all.deb",
+        "sha256": "ab8a7fe63293b455c02399ee125eb8a0041e430ccfdf89a5be8317522fdf9107"
+      }
+    ],
+    "nodeVersion": "24.22.2"
+  }
 }

@@ -1,5 +1,6 @@
 import {
   config,
+  publication,
   currentPlatform,
   readJson,
   root,
@@ -41,7 +42,9 @@ tar -xJf /tmp/node.tar.xz --strip-components=1 -C /opt/node-pty-node
     "-e",
     `UPSTREAM_TAG=${config.upstream.tag}`,
     "-e",
-    `TEST_VERSION=${version}`,
+    `TEST_VERSION=${publication.mode === "test" ? version : ""}`,
+    "-e",
+    `DOWNSTREAM_REVISION=${publication.revision}`,
     "-e",
     `PROOF_NAME=${proof}`,
     "-e",
@@ -60,7 +63,10 @@ if (mode === "build") {
   execute(platform.container, "npm run build:native", "baseline");
 } else if (platform.libc === "musl") {
   const proofs = [];
-  for (const [index, image] of config.muslRuntimes.entries()) {
+  const images = process.env.RUNTIME_MATRIX
+    ? JSON.parse(process.env.RUNTIME_MATRIX).muslImages || config.muslRuntimes
+    : config.muslRuntimes;
+  for (const [index, image] of images.entries()) {
     const name = `musl-${index}`;
     execute(image, "npm run verify", name);
     proofs.push(readJson(join(root, "dist", platform.id, `${name}.json`)));
@@ -72,7 +78,7 @@ if (mode === "build") {
       electron: [],
     },
     results: proofs.flatMap((proof) => proof.results),
-    containers: config.muslRuntimes,
+    containers: images,
   });
 } else {
   execute(platform.container, "npm run verify", "baseline");

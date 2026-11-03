@@ -15,6 +15,7 @@ import {
   writeJson,
 } from "./common.ts";
 import { validateDeviceProof } from "./proof.ts";
+import { verificationRecipe } from "./runtimes.ts";
 
 const prefix = process.env.ANDROID_NODE_PREFIX;
 const serial = process.env.ADB_SERIAL;
@@ -118,9 +119,11 @@ try {
     buildKey: build.buildKey,
     packages: build.packages,
     host,
+    environment: { kind: "device" },
     runtimes: { node: [host.node], electron: [] },
     results,
     testedAt: new Date().toISOString(),
+    verificationRecipe: verificationRecipe(),
   };
   validateDeviceProof(proof, {
     version,

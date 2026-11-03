@@ -17,8 +17,10 @@ import {
   hash,
   integrity,
   packageName,
+  publication,
   readJson,
   releasePlatforms,
+  recipeKey,
   root,
   run,
   version,
@@ -103,20 +105,22 @@ const features = {
 };
 const metadata = {
   upstream: config.upstream,
+  release: publication,
+  recipeKey: recipeKey(),
   napi: config.napi,
   buildKey: key,
   features,
 };
 const base = {
   version,
-  description: "Experimental prebuilt distribution of microsoft/node-pty",
+  description: "Cross-platform prebuilt distribution of microsoft/node-pty",
   license: "MIT",
   repository: {
     type: "git",
     url: `git+https://github.com/${config.repository}.git`,
   },
   homepage: `https://github.com/${config.repository}#readme`,
-  publishConfig: { access: "public", tag: "next" },
+  publishConfig: { access: "public", tag: publication.channel },
   engines: { node: ">=22.14.0" },
 };
 const stage = join(work, "package");
@@ -348,7 +352,7 @@ if (kind === "js") {
   });
   writeFileSync(
     join(stage, "README.md"),
-    `# ${packageName(platform)}\n\nExperimental assets for ${config.package}. Target ${platform.minimumOS}. See SOURCE.json for the fixed upstream and build configuration.\n`,
+    `# ${packageName(platform)}\n\nNative assets for ${config.package}. Target ${platform.minimumOS}. See SOURCE.json for the fixed upstream and build configuration.\n`,
   );
   let abiRequirements;
   if (platform.os === "linux" || platform.os === "android") {
@@ -452,6 +456,8 @@ writeJson(join(out, "build.json"), {
   buildKey: key,
   upstream: config.upstream,
   version,
+  publication,
+  recipeKey: recipeKey(),
   packages,
 });
 console.log(`Built ${id} / ${version} / ${key}`);

@@ -11,9 +11,12 @@ import {
   hash,
   readJson,
   writeJson,
+  publication,
+  recipeKey,
+  jsonRequest,
 } from "./common.ts";
 import { completeVerification } from "./proof.ts";
-const tag = `test-${version}`;
+const tag = publication.mode === "test" ? `test-${version}` : `v${version}`;
 const sha = run("git", ["rev-parse", "HEAD"], { capture: true });
 // GitHub omits draft releases from GET /releases/tags/:tag, but includes
 // them in the authenticated release list. Draft tags also lack a Git ref.
@@ -39,6 +42,9 @@ if (release && release.target_commitish !== sha)
   throw new Error(`Release target conflict ${tag}`);
 if (process.argv.includes("--finalize")) {
   if (!release) throw new Error("Missing sealed release");
+  const tags = await jsonRequest(
+    `https://registry.npmjs.org/-/package/${encodeURIComponent(config.package)}/dist-tags`,
+  );
   run("gh", [
     "release",
     "edit",
@@ -46,8 +52,8 @@ if (process.argv.includes("--finalize")) {
     "--repo",
     config.repository,
     "--draft=false",
-    "--prerelease",
-    "--latest=false",
+    `--prerelease=${publication.mode === "test" || publication.channel === "next"}`,
+    `--latest=${publication.channel === "latest" && tags.latest === version}`,
     "--title",
     "node-pty",
   ]);
@@ -69,11 +75,11 @@ if (!release) {
     "--target",
     sha,
     "--draft",
-    "--prerelease",
+    `--prerelease=${publication.mode === "test" || publication.channel === "next"}`,
     "--title",
     "node-pty",
     "--notes",
-    `Experimental npm next build ${version}. Upstream ${config.upstream.tag} at ${config.upstream.sha}. Runtime verification and checksums are in release-manifest.json.`,
+    `npm ${publication.channel} build ${version}. Upstream ${config.upstream.tag} at ${config.upstream.sha}. Downstream revision ${publication.revision}. Runtime verification and checksums are in release-manifest.json.\n\n<!-- node-pty-release ${JSON.stringify({ version, upstream: config.upstream, publication, recipeKey: recipeKey(), sourceCommit: sha, buildRunId: manifest.buildRunId })} -->`,
   ]);
   release = await waitForRelease();
   if (release.target_commitish !== sha)

@@ -10,8 +10,12 @@ import {
   packageName,
 } from "./common.ts";
 const tag = process.env.RELEASE_TAG;
-if (!/^test-0\.0\.[0-9]+$/.test(tag))
-  throw new Error("Invalid test release tag");
+if (
+  !/^(?:test-0\.0\.[0-9]+|v[0-9]+\.[0-9]+\.[0-9]+(?:-[a-zA-Z0-9.-]+)?)$/.test(
+    tag,
+  )
+)
+  throw new Error("Invalid release tag");
 const platform = currentPlatform();
 const dir = join(root, "dist", platform.id);
 mkdirSync(dir, { recursive: true });
@@ -31,7 +35,7 @@ const version = manifest.version;
 if (process.env.GITHUB_ENV)
   appendFileSync(
     process.env.GITHUB_ENV,
-    `TEST_VERSION=${version}\nUPSTREAM_TAG=${manifest.upstream.tag}\n`,
+    `TEST_VERSION=${version.startsWith("0.0.") ? version : ""}\nUPSTREAM_TAG=${manifest.upstream.tag}\nDOWNSTREAM_REVISION=${manifest.publication?.revision || 0}\n`,
   );
 const packages = manifest.packages.filter((p) =>
   [config.package, packageName(platform)].includes(p.name),

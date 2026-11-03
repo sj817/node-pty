@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
-import { mkdirSync, cpSync, readFileSync } from "node:fs";
+import { mkdirSync, cpSync, readFileSync, existsSync } from "node:fs";
+import { validateDeviceProof } from "./proof.ts";
+import { verificationRecipe } from "./runtimes.ts";
 import { join } from "node:path";
 import {
   config,
@@ -12,6 +14,8 @@ import {
   packageName,
   hash,
   releasePlatforms,
+  publication,
+  recipeKey,
 } from "./common.ts";
 
 const key = buildKey();
@@ -29,16 +33,27 @@ for (const platform of releasePlatforms) {
       packages.set(pkg.name, { ...pkg, buildKey: key });
       cpSync(join(source, pkg.filename), join(dir, pkg.filename));
     }
-    verification.push({
-      platform: platform.id,
-      pending: "Requires Android device verification of these exact tarballs",
-    });
+    if (existsSync(join(source, "verified.json"))) {
+      const proof = readJson(join(source, "verified.json"));
+      validateDeviceProof(proof, {
+        version,
+        buildKey: key,
+        packages: [...packages.values()],
+      });
+      verification.push(proof);
+    } else {
+      verification.push({
+        platform: platform.id,
+        pending: "Requires Android device verification of these exact tarballs",
+      });
+    }
     continue;
   }
   const proof = readJson(join(source, "verified.json"));
   assert.equal(proof.platform, platform.id);
   assert.equal(proof.version, version);
   assert.equal(proof.buildKey, key);
+  assert.equal(proof.verificationRecipe, verificationRecipe());
   if (platform.libc === "musl") {
     for (const major of [22, 24, 26])
       assert.ok(
@@ -109,7 +124,11 @@ const manifest = {
   version,
   buildKey: key,
   upstream: config.upstream,
+  publication,
+  recipeKey: recipeKey(),
+  verificationRecipe: verificationRecipe(),
   sourceCommit: process.env.GITHUB_SHA || null,
+  buildRunId: process.env.GITHUB_RUN_ID || null,
   packages: [...packages.values()].sort((a, b) => a.name.localeCompare(b.name)),
   verification,
 };
