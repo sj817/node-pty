@@ -22,7 +22,7 @@ on:
       test_version:
         description: Unused 0.0.1 through 0.0.100 test version
         type: string
-        default: 0.0.3
+        default: 0.0.4
 env:
   UPSTREAM_TAG: ${{ inputs.upstream_tag }}
   TEST_VERSION: ${{ inputs.test_version }}
