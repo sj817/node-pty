@@ -148,7 +148,7 @@
   },
   "sync": {
     "enabled": true,
-    "rebuildTags": [],
+    "rebuildTags": ["v1.1.0", "v1.2.0-beta.17"],
     "minimumUpstream": "1.1.0",
     "maxInFlight": 2
   },
