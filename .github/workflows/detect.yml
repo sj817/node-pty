@@ -1,7 +1,7 @@
 name: Track upstream and runtimes
 on:
   schedule:
-    - cron: "*/15 * * * *"
+    - cron: "7,22,37,52 * * * *"
   push:
     branches: [main]
     paths:
@@ -34,7 +34,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   detect:
-    if: github.event_name != 'workflow_run' || ((github.event.workflow_run.head_branch == 'main' || (github.event.workflow_run.name == 'Publish packages' && startsWith(github.event.workflow_run.head_branch, 'ci/'))) && github.event.workflow_run.head_repository.full_name == github.repository && github.event.workflow_run.event == 'workflow_dispatch')
+    if: github.event_name != 'workflow_run' || ((github.event.workflow_run.head_branch == 'main' || (github.event.workflow_run.path == '.github/workflows/publish.yml' && startsWith(github.event.workflow_run.head_branch, 'ci/'))) && github.event.workflow_run.head_repository.full_name == github.repository && github.event.workflow_run.event == 'workflow_dispatch')
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v7.0.1
