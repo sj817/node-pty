@@ -187,9 +187,9 @@ if (kind === "js") {
     join(stage, "index.d.ts"),
     declaration.replace(
       "declare module 'node-pty'",
-      `declare module '${config.package}'`,
+      `declare module '${config.package}/upstream-types'`,
     ) +
-      `\ndeclare module '${config.package}' {\n  const pty: { spawn: typeof spawn };\n  export default pty;\n}\n`,
+      `\ndeclare module '${config.package}' {\n  export * from '${config.package}/upstream-types';\n  import * as pty from '${config.package}/upstream-types';\n  export default pty;\n}\n`,
   );
   cpSync(join(root, "README.md"), join(stage, "README.md"));
   writeJson(join(stage, "package.json"), {
