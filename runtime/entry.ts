@@ -10,3 +10,4 @@ const upstream = require(
 );
 
 export const { spawn, fork, createTerminal, open, native } = upstream;
+export default upstream;

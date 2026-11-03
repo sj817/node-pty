@@ -116,6 +116,11 @@ async function cleanup() {
 }
 
 async function main() {
+  const imported = await import(manifest.name);
+  for (const name of ["spawn", "fork", "createTerminal", "open", "native"]) {
+    assert.equal(imported[name], pty[name]);
+    assert.equal(imported.default[name], pty[name]);
+  }
   if (process.env.EXPECT_ELECTRON)
     assert.ok(
       process.versions.electron,
