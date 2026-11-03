@@ -38,6 +38,34 @@ type SyncCandidate = SyncState & {
   publication: Publication;
 };
 
+export function sealedVersions(releases): Record<string, PublishedRecord> {
+  const versions = {};
+  for (const release of releases) {
+    const match = /<!-- node-pty-release (.+) -->/.exec(release.body || "");
+    if (!match) continue;
+    const record = JSON.parse(match[1]);
+    if (record.publication?.mode !== "release") continue;
+    if (
+      release.tag_name !== `v${record.version}` ||
+      record.publication.version !== record.version ||
+      !/^[a-f0-9]{40}$/.test(record.upstream?.sha) ||
+      !/^[a-f0-9]{40}$/.test(record.sourceCommit) ||
+      !/^[a-f0-9]{64}$/.test(record.recipeKey) ||
+      !/^\d+$/.test(String(record.buildRunId))
+    )
+      throw new Error(`Invalid sealed release metadata ${release.tag_name}`);
+    versions[record.version] = {
+      version: record.version,
+      nodePty: {
+        release: record.publication,
+        upstream: record.upstream,
+        recipeKey: record.recipeKey,
+      },
+    };
+  }
+  return versions;
+}
+
 export function candidatePublication(
   tag,
   versions: Record<string, PublishedRecord>,
@@ -275,15 +303,18 @@ async function main() {
     ),
     githubPages(`repos/${config.repository}/releases`),
   ]);
+  // A sealed bundle remains the retry source even if npm has no main package
+  // yet and main has acquired adapters for other upstream versions.
+  const plannedVersions = { ...sealedVersions(releases), ...registry.versions };
   const candidates = detection.candidates
     .map((tag): SyncCandidate => {
       const key = candidateRecipe(
         tag,
-        registry.versions,
+        plannedVersions,
         recipeKey(tag),
         config.sync.rebuildTags?.includes(tag.tag),
       );
-      const publication = candidatePublication(tag, registry.versions, key);
+      const publication = candidatePublication(tag, plannedVersions, key);
       const candidate = { ...tag, recipeKey: key, publication };
       if (!tag.ready || tag.api !== "node-api")
         return { ...candidate, state: "upstream-pending" };

@@ -13,6 +13,7 @@ import {
   candidateRecipe,
   candidateState,
   selectPublication,
+  sealedVersions,
 } from "../scripts/sync.ts";
 import { changeAreas, diffBase, selectTags } from "../scripts/upstream.ts";
 import { hasRuntimeUpdates } from "../scripts/runtimes.ts";
@@ -47,6 +48,33 @@ test("adapting another tag preserves published artifacts until a rebuild is requ
   assert.throws(() =>
     candidateRecipe({ ...tag, sha: "moved" }, versions, "new"),
   );
+});
+
+test("a sealed partial publication preserves its revision and recipe before npm exposes the main package", () => {
+  const tag = {
+    tag: "v1.2.0-beta.3",
+    version: "1.2.0-beta.3",
+    sha: "a".repeat(40),
+  };
+  const publication = publicationFor(tag.version, 2);
+  const release = {
+    tag_name: `v${publication.version}`,
+    draft: true,
+    body: `<!-- node-pty-release ${JSON.stringify({
+      version: publication.version,
+      upstream: tag,
+      publication,
+      recipeKey: "b".repeat(64),
+      sourceCommit: "c".repeat(40),
+      buildRunId: "123",
+    })} -->`,
+  };
+  const versions = sealedVersions([release]);
+  const key = candidateRecipe(tag, versions, "new-adapter");
+  assert.equal(key, "b".repeat(64));
+  assert.equal(candidatePublication(tag, versions, key).revision, 2);
+  assert.equal(candidatePublication(tag, versions, "new-adapter").revision, 3);
+  assert.throws(() => sealedVersions([{ ...release, tag_name: "v9.9.9" }]));
 });
 
 test("multiple completed candidates wait behind the active publication without replacing pending runs", () => {
