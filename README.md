@@ -22,7 +22,7 @@ npm install --save-exact node-pty@npm:@qwqo/node-pty@next
 
 Aliases apply to your direct dependency. Replacing transitive dependencies requires your package manager's overrides.
 
-TypeScript aliases require stable `1.1.2` or the corrected beta `1.2.0-beta.17.1` and subsequent releases. The commands above pin the selected version.
+TypeScript aliases require stable `1.1.2` or the corrected beta `1.2.0-beta.17.1` and subsequent releases. The npm commands pin the selected version; keep your package manager's lockfile committed.
 
 For a new project, you can also install the scoped package directly:
 
