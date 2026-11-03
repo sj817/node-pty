@@ -52,7 +52,7 @@ Publication runs use an immutable `ci/<build-commit>` Git ref. npm provenance th
 
 Finish in-flight publications before changing workflow files. GitHub checks workflow-file permissions when creating releases for commits whose workflows differ from the default branch; see the [release API requirements](https://docs.github.com/en/rest/releases/releases#create-a-release).
 
-GitHub releases are titled `node-pty`. Assets use names such as `node-pty.tgz`, `node-pty-darwin-arm64.tgz`, `node-pty-linux-x64-musl.tgz` and `node-pty-android-arm64.tgz`. Version information lives in package metadata, the Git tag and `release-manifest.json`. npm controls its own registry download URLs.
+GitHub release titles use the npm version prefixed with `v`, such as `v1.1.1` or `v1.2.0-beta.17.qwqo.0`. Assets use names such as `node-pty.tgz`, `node-pty-darwin-arm64.tgz`, `node-pty-linux-x64-musl.tgz` and `node-pty-android-arm64.tgz`. Version information lives in package metadata, the Git tag and `release-manifest.json`. npm controls its own registry download URLs.
 
 ## Version mapping
 
