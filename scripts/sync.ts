@@ -63,6 +63,11 @@ export function buildRunName(key: string, revision: number): string {
   return `build-${key}-r${revision}`;
 }
 
+export function selectPublication(candidates, publications) {
+  if (publications.some((entry) => entry.status !== "completed")) return null;
+  return candidates.find((candidate) => candidate.state === "built") || null;
+}
+
 export function candidateState(
   candidate,
   versions,
@@ -217,6 +222,25 @@ async function pinChanges() {
 }
 
 async function main() {
+  if (process.env.COMPLETED_RUN_ID) {
+    if (!/^\d+$/.test(process.env.COMPLETED_RUN_ID))
+      throw new Error("Invalid completion run ID");
+    let completed = false;
+    for (let attempt = 0; attempt < 30; attempt++) {
+      const producer = await github(
+        `repos/${config.repository}/actions/runs/${process.env.COMPLETED_RUN_ID}`,
+      );
+      if (producer.status === "completed") {
+        completed = true;
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+    if (!completed)
+      throw new Error(
+        "Producer cleanup is still running. The scheduled detector will retry.",
+      );
+  }
   const detection = readJson(join(root, "dist/detection.json"));
   const [registry, builds, publications, releases] = await Promise.all([
     jsonRequest(
@@ -264,6 +288,7 @@ async function main() {
         "Publication conflicts require review. See sync-plan.json.",
       );
     await pinChanges();
+    const publishable = selectPublication(candidates, publications);
     let slots =
       config.sync.maxInFlight -
       candidates.filter((candidate) => candidate.state === "building").length;
@@ -281,6 +306,10 @@ async function main() {
         candidate.state = "building";
         slots--;
       } else if (candidate.state === "built") {
+        if (candidate !== publishable) {
+          candidate.state = "publication-queued";
+          continue;
+        }
         const artifacts = await githubPages(
           `repos/${config.repository}/actions/runs/${candidate.runId}/artifacts`,
           "artifacts",

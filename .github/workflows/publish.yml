@@ -20,6 +20,7 @@ permissions:
 concurrency:
   group: npm-publication
   cancel-in-progress: false
+  queue: max
 jobs:
   prepare:
     runs-on: ubuntu-22.04
@@ -154,3 +155,17 @@ jobs:
       - run: node scripts/seal.ts --finalize
         env:
           GH_TOKEN: ${{ github.token }}
+  notify:
+    needs: [prepare, validate, seal, publish, finalize]
+    if: always() && !inputs.dry_run
+    continue-on-error: true
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - run: gh workflow run detect.yml --repo "$REPO" --ref main -f apply=true -f completed_run_id="$RUN_ID"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}

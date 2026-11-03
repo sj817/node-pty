@@ -20,6 +20,9 @@ on:
         description: Pin new tags and dispatch queued builds/publications
         type: boolean
         default: false
+      completed_run_id:
+        description: Optional producer run to wait for before inspecting the queue
+        type: string
   workflow_run:
     workflows: ["Build and verify tarballs", "Publish packages"]
     types: [completed]
@@ -49,6 +52,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           DISPATCH_SYNC: ${{ (inputs.apply || github.event_name == 'schedule' || github.event_name == 'workflow_run') && '1' || '0' }}
+          COMPLETED_RUN_ID: ${{ inputs.completed_run_id }}
       - uses: actions/upload-artifact@v7.0.2
         if: always()
         with:

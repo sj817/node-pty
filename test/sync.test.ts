@@ -11,6 +11,7 @@ import {
   buildRunName,
   candidatePublication,
   candidateState,
+  selectPublication,
 } from "../scripts/sync.ts";
 import { changeAreas, diffBase, selectTags } from "../scripts/upstream.ts";
 import { hasRuntimeUpdates } from "../scripts/runtimes.ts";
@@ -28,6 +29,20 @@ function record(upstream: string, revision = 0, recipe = "recipe") {
     },
   };
 }
+
+test("multiple completed candidates wait behind the active publication without replacing pending runs", () => {
+  const candidates = [
+    { state: "built", runId: 1 },
+    { state: "built", runId: 2 },
+  ];
+  assert.equal(selectPublication(candidates, []), candidates[0]);
+  for (const status of ["queued", "pending", "in_progress"])
+    assert.equal(selectPublication(candidates, [{ status }]), null);
+  assert.equal(
+    selectPublication(candidates, [{ status: "completed" }]),
+    candidates[0],
+  );
+});
 
 test("upstream versions and downstream revisions occupy disjoint stable slots", () => {
   assert.equal(publicationFor("1.1.0", 0, ["1.1.0"]).version, "1.1.1");
