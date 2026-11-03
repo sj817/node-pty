@@ -147,7 +147,7 @@
     "reserved": ["1.1.0"]
   },
   "sync": {
-    "enabled": false,
+    "enabled": true,
     "minimumUpstream": "1.1.0",
     "maxInFlight": 2
   },
