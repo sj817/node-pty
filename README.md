@@ -66,11 +66,11 @@ The current adapter uses Node-API 8 and Node 22.14+ synchronous ESM loading. Nod
 
 Node and Electron share one binary for a supported OS, architecture and libc when the selected source uses Node-API. Each combination is still tested with actual runtime versions. Older upstream sources using NAN/V8 require separate ABI adapters.
 
-Windows upstream console-list agents can emit `AttachConsole failed` during shell-exit races. Tests check shell output, resizing, exit events, exit status and process cleanup separately.
-
 ## Electron and ESM
 
 Repository scripts, tests, loaders and generated JS use ESM. Native `.node` loading uses Node's `createRequire`. Node 22.14+ callers can also load the synchronous ESM public API with `require()`.
+
+Version `0.0.4` adds default-import compatibility alongside named imports. The earlier `0.0.2` and `0.0.3` test versions support named imports and `require()`.
 
 Keep the package external to bundlers and unpack the complete main and platform packages from ASAR, including worker JS, `.node` modules, helpers and DLLs. An electron-builder configuration is
 
