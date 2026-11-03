@@ -1,17 +1,20 @@
 # @qwqo/node-pty
 
-Experimental prebuilt distribution of [microsoft/node-pty](https://github.com/microsoft/node-pty), maintained as a personal project. The PTY implementation and declarations come from a full upstream commit SHA.
+Cross-platform prebuilt distribution of [microsoft/node-pty](https://github.com/microsoft/node-pty), maintained as a personal project. The PTY implementation and declarations come from a full upstream commit SHA.
 
-## Test releases
+## Installation
 
-Development uses versions `0.0.1` through `0.0.100` and the npm `next` tag. The first occupied version, `0.0.1`, is a binding placeholder. The withdrawn `1.1.0` release is unavailable. Testing started with `0.0.2`. The next candidate is selected in `release.json`.
+Upstream stable releases use npm `latest`. Upstream prereleases, including beta tags, use npm `next`.
 
 ```sh
+npm install @qwqo/node-pty
+pnpm add @qwqo/node-pty
+
+# Upstream beta releases
 npm install @qwqo/node-pty@next
-pnpm add @qwqo/node-pty@next
 ```
 
-Use these commands once the corresponding test workflow has published `next`. The initial `latest` tag may still point at the empty bootstrap package. npm permanently reserves previously published name/version combinations, including withdrawn versions.
+The early `0.0.x` versions are historical test builds. npm permanently reserves previously published name/version combinations, including withdrawn versions.
 
 ```ts
 import * as pty from "@qwqo/node-pty";
@@ -36,16 +39,31 @@ The main tarball contains the upstream JS implementation, public types and platf
 2. Build platform native modules and required helpers.
 3. Compile the upstream TypeScript implementation into ESM JS once, including workers and fork agents. Build the ESM loader and copy the upstream declarations.
 4. Test packed tarballs through npm and pnpm in isolated projects. Run actual Node and supported Electron runtimes.
-5. Validate Android ARM64 tarballs on a device and supply the resulting proof to the publishing workflow.
-6. Publish platform packages, retrieve and verify their attested tarballs, then publish the main package and promote `next`.
+5. Validate Android ARM64 tarballs in the pinned Termux/Bionic container on a native ARM64 runner.
+6. Publish platform packages, retrieve and verify their attested tarballs, then publish the main package and promote its stable or prerelease channel.
 
-The publisher rejects versions outside the test range and any target tag other than `next`. It requires a successful build from the same repository commit as the publication workflow. Registry conflicts, moved source tags and incomplete target verification stop publication. Failed uploads can be retried using the same build run and Android proof.
+The publisher checks out the successful build's original repository commit and verifies its source identity, version mapping and tarball checksums. Registry conflicts, moved source tags and incomplete target verification stop publication. Failed uploads can be retried from the original publication run using the same immutable bundle.
 
-GitHub test releases are prereleases titled `node-pty`. Assets use names such as `node-pty.tgz`, `node-pty-darwin-arm64.tgz`, `node-pty-linux-x64-musl.tgz` and `node-pty-android-arm64.tgz`. Version information lives in package metadata, the Git tag and `release-manifest.json`. npm controls its own registry download URLs.
+Publication runs use an immutable `ci/<build-commit>` Git ref. npm provenance therefore identifies the same commit that built the tarballs, including when newer tags arrive while an older candidate is still running.
+
+GitHub releases are titled `node-pty`. Assets use names such as `node-pty.tgz`, `node-pty-darwin-arm64.tgz`, `node-pty-linux-x64-musl.tgz` and `node-pty-android-arm64.tgz`. Version information lives in package metadata, the Git tag and `release-manifest.json`. npm controls its own registry download URLs.
+
+## Version mapping
+
+Each upstream stable patch reserves 1,000 downstream revisions. For upstream `M.m.p` and revision `r`, the npm version is `M.m.(p * 1000 + r)`, with `r` from 0 through 999. Prereleases retain their identifiers and append `.qwqo.r` after the encoded patch. This preserves SemVer ordering across upstream patches, beta sequences and downstream rebuilds.
+
+| Upstream        | Revision | npm version            | Channel  |
+| --------------- | -------- | ---------------------- | -------- |
+| `1.1.0`         | 1        | `1.1.1`                | `latest` |
+| `1.1.1`         | 0        | `1.1.1000`             | `latest` |
+| `1.2.0-beta.17` | 0        | `1.2.0-beta.17.qwqo.0` | `next`   |
+| `1.2.0-beta.17` | 1        | `1.2.0-beta.17.qwqo.1` | `next`   |
+
+The initial `1.1.0` npm version was withdrawn and remains reserved, so its first production backfill starts at revision 1. `SOURCE.json`, `nodePty.upstream` and the release manifest identify the exact upstream version, SHA and downstream revision. Backfilling an older version retains a newer channel target.
 
 ## Platform validation
 
-These are configured test targets. A test release's manifest records which runtimes actually executed and the checksums of the exact tarballs.
+These are configured targets. Each release manifest records which runtimes actually executed and the checksums of the exact tarballs.
 
 | Platform suffix   | Build baseline                | Runtime verification                         |
 | ----------------- | ----------------------------- | -------------------------------------------- |
@@ -57,7 +75,7 @@ These are configured test targets. A test release's manifest records which runti
 | linux-arm64-glibc | manylinux glibc 2.28          | Baseline container, Node and Electron        |
 | linux-x64-musl    | Pinned Alpine Node image      | Node 22, 24 and 26 container images          |
 | linux-arm64-musl  | Pinned Alpine Node image      | Node 22, 24 and 26 container images          |
-| android-arm64     | Android NDK API 24            | Android/Bionic device Node, npm and pnpm     |
+| android-arm64     | Android NDK API 24            | Termux/Bionic container Node, npm and pnpm   |
 | android-x64       | Android NDK API 24            | Build artifact pending a target runtime test |
 
 Every published suffix is prefixed with `@qwqo/node-pty-`. Linux manifests specify `libc`. Android x64 stays outside the npm release set until target verification exists. Electron binaries are validated on its desktop platforms. Android and native musl currently use Node-only verification.
@@ -87,15 +105,20 @@ CI runs real Electron main processes from both a directory and ASAR. macOS `spaw
 
 ## Historical tags and CI
 
-`upstream-tags.json` locks every discovered historical tag to a SHA and records its native-interface family. `detect.yml` checks all tags, reports exact-SHA CI failures or missing evidence, and detects moved tags. Node-API tags can be selected individually through `build.yml` inputs. A successful compilation becomes publishable only after all runtime tests and the upstream gate pass. Historical NAN/V8 or unclassified tags remain pending a reviewed ABI/build adapter.
+`upstream-tags.json` locks all discovered tags to SHAs and records their native-interface family and observed CI profile. The supported backfill floor is `v1.1.0`. It includes every existing `1.2.0-beta.*` tag. Earlier `1.1.0-beta*` and legacy Node/V8 releases are outside this range.
+
+Detection compares the complete tag set every 15 minutes and after builds/publications complete. New tags are pinned before dispatch. Each selected tag gets its own source diff, recipe fingerprint, revision and build. Diff bases follow the stable line or the same prerelease series. Native, runtime JS, types, build configuration and CI changes are recorded separately in the plan artifact.
+
+The queue runs at most two candidate builds at once. Successful matching recipes are reused. A changed artifact recipe allocates the next downstream revision. A supported runtime update retests published stable and beta tarballs. Failed builds and partial publications retain their original run IDs for retry. Out-of-order completions publish historical versions while preserving the highest verified stable and beta channel targets.
 
 - `test.yml` runs ESLint, Prettier, TypeScript and policy tests.
-- `build.yml` builds native assets, compiles the complete main package, verifies desktop/musl targets and uploads a candidate bundle. Android device verification is a separate publication gate.
-- `publish.yml` accepts a candidate build run ID and Android proof, defaults to dry-run, and publishes only test versions to `next` through OIDC.
+- `build.yml` builds native assets, compiles the main package and verifies desktop, musl and Android targets before assembling a bundle.
+- `android.yml` runs packed Android assets under the pinned official Termux Docker image on a GitHub-hosted ARM64 runner. Image digest, Node packages and library checksums are fixed in `release.json`.
+- `publish.yml` accepts a successful build run ID, defaults to dry-run, validates the bundle, and publishes its channel through OIDC.
 - `compatibility.yml` retests published tarballs without publishing new binaries.
-- `detect.yml` tracks upstream tags and supported runtime lines daily and on demand.
+- `detect.yml` tracks tags and runtime lines, reports the queue, and dispatches builds and verified publications. Manual runs default to preview mode. Enable `apply` to process the queue.
 
-The present upstream gate uses observed Azure Pipelines checks from `release.json`. Historical tags with different or absent CI retain a pending reason for review. New tag discovery never silently authorizes a formal release.
+The upstream gate uses exact-SHA Azure Pipelines checks observed from the source's `publish.yml` and native prebuild matrix. Unknown CI layouts, missing or cancelled checks, and unsupported native API families retain explicit pending reasons. The initial `beta.1` native checks and `beta.15` cancelled publish check remain pending.
 
 ## Development
 
@@ -112,7 +135,9 @@ npm run verify
 
 Use `npm run format` to apply Prettier. ESLint uses the official recommended JS and typescript-eslint configurations with eslint-config-prettier. Source adapters fail when the expected upstream structure changes.
 
-For Android tests, download the exact `javascript` and `native-android-arm64` CI artifacts into `dist/main` and `dist/android-arm64`. Set `ADB_SERIAL` and `ANDROID_NODE_PREFIX` to a connected Android device and its staged Node runtime, then run `node scripts/android-test.ts`. The generated `dist/android-arm64/verified.json` is the `android_proof` workflow input. This path requires root ADB for the current device harness and records Android/Bionic identity and tarball integrity.
+`android.yml` can retest an existing build run or published release. Its proof identifies the actual Android Node process and Bionic container environment. The container shares the host Linux kernel. Phone permissions and vendor ROM behavior remain part of device acceptance.
+
+For additional device acceptance, download the exact `javascript` and `native-android-arm64` artifacts into `dist/main` and `dist/android-arm64`. Set `ADB_SERIAL` and `ANDROID_NODE_PREFIX`, then run `node scripts/android-test.ts`. This root-ADB harness records the device API level separately from container proofs.
 
 Trusted Publishing bindings use `sj817/node-pty`, `publish.yml`, environment `npm`. Use local `npt` with `--allow-dist-tag`, inspect a dry-run and confirm new package targets before provisioning. CI uses GitHub OIDC with no stored npm token.
 
