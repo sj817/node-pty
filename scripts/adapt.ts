@@ -1,5 +1,30 @@
 import ts from "typescript";
 
+export function externalDeclarations(source: string): string {
+  const parsed = ts.createSourceFile(
+    "upstream.d.ts",
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+  );
+  const module = parsed.statements[0];
+  if (
+    parsed.statements.length !== 1 ||
+    !module ||
+    !ts.isModuleDeclaration(module) ||
+    !ts.isStringLiteral(module.name) ||
+    module.name.text !== "node-pty" ||
+    !module.body ||
+    !ts.isModuleBlock(module.body)
+  )
+    throw new Error("Unreviewed upstream type declarations");
+  return (
+    source.slice(0, module.getStart(parsed)) +
+    source.slice(module.body.getStart(parsed) + 1, module.body.end - 1).trim() +
+    "\n"
+  );
+}
+
 export function compileEsm(source: string, filename: string): string {
   const result = ts.transpileModule(source, {
     fileName: filename,

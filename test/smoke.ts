@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
-const pty = require("@qwqo/node-pty");
-const manifest = require("@qwqo/node-pty/package.json");
+const packageName = "@qwqo/node-pty";
+const pty = require(packageName);
+const manifest = require(`${packageName}/package.json`);
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function smoke(options = {}) {
@@ -116,7 +117,7 @@ async function cleanup() {
 }
 
 async function main() {
-  const imported = await import(manifest.name);
+  const imported = await import(packageName);
   for (const name of ["spawn", "fork", "createTerminal", "open", "native"]) {
     assert.equal(imported[name], pty[name]);
     assert.equal(imported.default[name], pty[name]);

@@ -37,6 +37,7 @@ export function verificationRecipe(): string {
         "scripts/android-container.ts",
         "test/smoke.ts",
         "test/types.ts",
+        "test/types.cts",
         "test/registry.ts",
         "package-lock.json",
       ].map((file) => [

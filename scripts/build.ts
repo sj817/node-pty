@@ -8,7 +8,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
-import { adaptUpstream, compileEsm } from "./adapt.ts";
+import { adaptUpstream, compileEsm, externalDeclarations } from "./adapt.ts";
 import { adaptNativeSource } from "./native-adapter.ts";
 import {
   buildKey,
@@ -113,6 +113,7 @@ run("npm", ["ci", "--ignore-scripts", "--no-audit", "--no-fund"], {
 });
 
 const features = {
+  aliasTypes: true,
   winpty: readFileSync(join(source, "binding.gyp"), "utf8").includes(
     "winpty.gyp",
   ),
@@ -200,16 +201,19 @@ if (kind === "js") {
     join(source, "typings/node-pty.d.ts"),
     "utf8",
   ).replace(/\r\n/g, "\n");
-  if (!declaration.includes("declare module 'node-pty'"))
-    throw new Error("Unreviewed upstream type declarations");
-  writeFileSync(
-    join(stage, "index.d.ts"),
-    declaration.replace(
-      "declare module 'node-pty'",
-      `declare module '${config.package}/upstream-types'`,
-    ) +
-      `\ndeclare module '${config.package}' {\n  export * from '${config.package}/upstream-types';\n  import * as pty from '${config.package}/upstream-types';\n  export default pty;\n}\n`,
-  );
+  for (const [extension, target] of [
+    ["ts", "js"],
+    ["cts", "cjs"],
+  ]) {
+    writeFileSync(
+      join(stage, `upstream-types.d.${extension}`),
+      externalDeclarations(declaration),
+    );
+    writeFileSync(
+      join(stage, `index.d.${extension}`),
+      `export * from "./upstream-types.${target}";\nimport * as pty from "./upstream-types.${target}";\nexport default pty;\n`,
+    );
+  }
   cpSync(join(root, "README.md"), join(stage, "README.md"));
   writeJson(join(stage, "package.json"), {
     ...base,
@@ -218,13 +222,20 @@ if (kind === "js") {
     main: "./index.js",
     types: "./index.d.ts",
     exports: {
-      ".": { types: "./index.d.ts", default: "./index.js" },
+      ".": {
+        import: { types: "./index.d.ts", default: "./index.js" },
+        require: { types: "./index.d.cts", default: "./index.js" },
+        default: "./index.js",
+      },
       "./package.json": "./package.json",
     },
     files: [
       "lib",
       "index.js",
       "index.d.ts",
+      "index.d.cts",
+      "upstream-types.d.ts",
+      "upstream-types.d.cts",
       "loader.js",
       "licenses",
       "SOURCE.json",
@@ -241,7 +252,7 @@ if (kind === "js") {
       "ESM module syntax and explicit relative extensions",
       "Node-API optional platform loader",
       "ASAR helper paths",
-      "Renamed ambient module declaration",
+      "External module declarations with alias-independent exports",
     ],
   });
 } else {
@@ -445,6 +456,9 @@ if (kind === "js") {
     "index.js",
     "loader.js",
     "index.d.ts",
+    "index.d.cts",
+    "upstream-types.d.ts",
+    "upstream-types.d.cts",
     "lib/index.js",
     "lib/unixTerminal.js",
     "lib/windowsPtyAgent.js",

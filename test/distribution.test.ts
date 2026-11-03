@@ -1,6 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { adaptUpstream, compileEsm } from "../scripts/adapt.ts";
+import {
+  adaptUpstream,
+  compileEsm,
+  externalDeclarations,
+} from "../scripts/adapt.ts";
 import { classifyNativeSource } from "../scripts/history.ts";
 import { validateDeviceProof } from "../scripts/proof.ts";
 import { buildKey, config, root } from "../scripts/common.ts";
@@ -69,6 +73,22 @@ test("upstream module adaptation keeps ESM imports and real helper paths", () =>
     compileEsm("export { unpacked } from './loader.ts';", "entry.ts"),
     /loader\.js/,
   );
+});
+
+test("declaration adaptation preserves nested types and rejects unreviewed module layouts", () => {
+  const body =
+    "export namespace nested { export interface Value { text: string; } }";
+  const result = externalDeclarations(
+    `/** upstream license */\ndeclare module 'node-pty' {\n${body}\n}`,
+  );
+  assert.ok(result.includes("/** upstream license */"));
+  assert.ok(result.includes(body));
+  for (const source of [
+    "export interface Value {}",
+    "declare module 'other-package' {}",
+    "declare module 'node-pty' {}\nexport interface Extra {}",
+  ])
+    assert.throws(() => externalDeclarations(source), /Unreviewed/);
 });
 
 test("history classifies direct V8 separately from Node-API", () => {

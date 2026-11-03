@@ -49,6 +49,26 @@ for (const pkg of build.packages) {
   assert.equal(integrity(join(out, pkg.filename)), pkg.integrity);
 }
 writeJson(join(out, "build.json"), build);
+const mainPackage = main.packages.find((pkg) => pkg.name === config.package);
+const mainManifest = JSON.parse(
+  run(
+    "tar",
+    ["-xOf", join(out, mainPackage.filename), "package/package.json"],
+    {
+      capture: true,
+    },
+  ),
+);
+const packageNames = mainManifest.nodePty.features?.aliasTypes
+  ? [config.package, "node-pty"]
+  : [config.package];
+const cases = ["npm", "pnpm"].flatMap((manager) =>
+  packageNames.map((packageName) => ({
+    manager,
+    packageName,
+    name: `${manager}${packageName === config.package ? "" : "-alias"}`,
+  })),
+);
 const parent = join(root, ".work/android-container");
 mkdirSync(parent, { recursive: true });
 const work = mkdtempSync(join(parent, `${build.version}-`));
@@ -101,6 +121,8 @@ for (const [name, version] of [
   mkdirSync(target, { recursive: true });
   writeFileSync(archive, bytes);
   run("tar", ["-xzf", archive, "--strip-components=1", "-C", target]);
+}
+for (const { name, packageName } of cases) {
   const project = join(work, name);
   mkdirSync(project, { mode: 0o777 });
   chmodSync(project, 0o777);
@@ -109,13 +131,34 @@ for (const [name, version] of [
     version: "1.0.0",
     private: true,
     type: "module",
-    dependencies: { [config.package]: build.version },
+    dependencies: {
+      [packageName]:
+        packageName === config.package
+          ? build.version
+          : `npm:${config.package}@${build.version}`,
+    },
   });
   writeFileSync(
     join(project, "smoke.js"),
-    compileEsm(readFileSync(join(root, "test/smoke.ts"), "utf8"), "smoke.ts"),
+    compileEsm(
+      readFileSync(join(root, "test/smoke.ts"), "utf8").replaceAll(
+        config.package,
+        packageName,
+      ),
+      "smoke.ts",
+    ),
   );
-  cpSync(join(root, "test/types.ts"), join(project, "types.ts"));
+  for (const fixture of [
+    "types.ts",
+    ...(mainManifest.nodePty.features?.aliasTypes ? ["types.cts"] : []),
+  ])
+    writeFileSync(
+      join(project, fixture),
+      readFileSync(join(root, "test", fixture), "utf8").replaceAll(
+        config.package,
+        packageName,
+      ),
+    );
 }
 const server = fork(join(root, "test/registry.ts"), [out], {
   stdio: ["ignore", "inherit", "inherit", "ipc"],
@@ -131,12 +174,15 @@ export HOME=/work/home
 export npm_config_cache=/work/cache
 mkdir -p "$HOME"
 node -p 'JSON.stringify({platform:process.platform,arch:process.arch,node:process.versions.node,napi:process.versions.napi})' > /work/host.json
-cd /work/npm
-node /work/tools/npm/bin/npm-cli.js install --ignore-scripts --include=optional --no-audit --no-fund --registry=http://127.0.0.1:${port}
-node smoke.js
-cd /work/pnpm
-node /work/tools/pnpm/bin/pnpm.cjs install --ignore-scripts --store-dir=/work/pnpm-store --registry=http://127.0.0.1:${port}
-node smoke.js
+${cases
+  .map(({ name, manager }) => {
+    const command =
+      manager === "npm"
+        ? "node /work/tools/npm/bin/npm-cli.js install --ignore-scripts --include=optional --no-audit --no-fund"
+        : "node /work/tools/pnpm/bin/pnpm.cjs install --ignore-scripts --store-dir=/work/pnpm-store";
+    return `cd /work/${name}\n${command} --registry=http://127.0.0.1:${port}\nnode smoke.js`;
+  })
+  .join("\n")}
 `,
   );
   run("docker", [
@@ -157,7 +203,7 @@ node smoke.js
   assert.equal(host.arch, "arm64");
   assert.equal(host.node, config.androidRuntime.nodeVersion);
   const results = [];
-  for (const manager of ["npm", "pnpm"]) {
+  for (const { name, manager, packageName } of cases) {
     run(process.execPath, [
       join(root, "node_modules/typescript/bin/tsc"),
       "--noEmit",
@@ -170,11 +216,15 @@ node smoke.js
       "node16",
       "--typeRoots",
       join(root, "node_modules/@types"),
-      join(work, manager, "types.ts"),
+      join(work, name, "types.ts"),
+      ...(mainManifest.nodePty.features?.aliasTypes
+        ? [join(work, name, "types.cts")]
+        : []),
     ]);
     results.push({
       kind: "installation",
       manager,
+      packageName,
       scripts: false,
       types: true,
       ok: true,

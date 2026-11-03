@@ -38,6 +38,21 @@ if (
   mainBuild.upstream.sha !== build.upstream.sha
 )
   throw new Error("JS and native sources differ");
+const mainPackage = mainBuild.packages.find(
+  (pkg) => pkg.name === config.package,
+);
+const mainManifest = JSON.parse(
+  run(
+    "tar",
+    ["-xOf", join(mainDir, mainPackage.filename), "package/package.json"],
+    {
+      capture: true,
+    },
+  ),
+);
+const packageNames = mainManifest.nodePty.features?.aliasTypes
+  ? [config.package, "node-pty"]
+  : [config.package];
 for (const pkg of mainBuild.packages) {
   cpSync(join(mainDir, pkg.filename), join(out, pkg.filename));
   if (!build.packages.some((item) => item.name === pkg.name))
@@ -91,7 +106,7 @@ function execute(command, args, options = {}) {
     });
   });
 }
-function project(name) {
+function project(name, packageName = config.package) {
   const dir = join(work, name);
   if (existsSync(dir))
     throw new Error(
@@ -104,11 +119,22 @@ function project(name) {
     private: true,
     type: "module",
     main: "smoke.js",
-    dependencies: { [config.package]: version },
+    dependencies: {
+      [packageName]:
+        packageName === config.package
+          ? version
+          : `npm:${config.package}@${version}`,
+    },
   });
   writeFileSync(
     join(dir, "smoke.js"),
-    compileEsm(readFileSync(join(root, "test/smoke.ts"), "utf8"), "smoke.ts"),
+    compileEsm(
+      readFileSync(join(root, "test/smoke.ts"), "utf8").replaceAll(
+        config.package,
+        packageName,
+      ),
+      "smoke.ts",
+    ),
   );
   return dir;
 }
@@ -124,8 +150,14 @@ try {
     "--no-fund",
     `pnpm@${config.pnpm}`,
   ]);
-  for (const manager of ["npm", "pnpm"]) {
-    const dir = project(manager);
+  const cases = ["npm", "pnpm"].flatMap((manager) =>
+    packageNames.map((packageName) => ({ manager, packageName })),
+  );
+  for (const { manager, packageName } of cases) {
+    const dir = project(
+      `${manager}${packageName === config.package ? "" : "-alias"}`,
+      packageName,
+    );
     const args = ["install", "--ignore-scripts", `--registry=${registry}`];
     if (manager === "npm")
       run("npm", [...args, "--include=optional", "--no-audit", "--no-fund"], {
@@ -143,11 +175,11 @@ try {
         { cwd: dir },
       );
     const require = createRequire(join(dir, "smoke.js"));
-    const installed = require(`${config.package}/package.json`);
+    const installed = require(`${packageName}/package.json`);
     if (
       installed.version !== version ||
       installed.scripts ||
-      existsSync(join(dir, "node_modules", config.package, "binding.gyp"))
+      existsSync(join(dir, "node_modules", packageName, "binding.gyp"))
     )
       throw new Error("Unexpected install script or node-gyp input");
     await execute(process.execPath, [join(dir, "smoke.js")], { cwd: dir });
@@ -156,11 +188,21 @@ try {
       [
         "--input-type=module",
         "-e",
-        "import { spawn } from '@qwqo/node-pty'; if (typeof spawn !== 'function') throw new Error('Missing ESM API')",
+        `import { spawn } from ${JSON.stringify(packageName)}; if (typeof spawn !== 'function') throw new Error('Missing ESM API')`,
       ],
       { cwd: dir },
     );
-    cpSync(join(root, "test/types.ts"), join(dir, "types.ts"));
+    for (const fixture of [
+      "types.ts",
+      ...(mainManifest.nodePty.features?.aliasTypes ? ["types.cts"] : []),
+    ])
+      writeFileSync(
+        join(dir, fixture),
+        readFileSync(join(root, "test", fixture), "utf8").replaceAll(
+          config.package,
+          packageName,
+        ),
+      );
     run(
       process.execPath,
       [
@@ -176,12 +218,16 @@ try {
         "--typeRoots",
         join(root, "node_modules/@types"),
         join(dir, "types.ts"),
+        ...(mainManifest.nodePty.features?.aliasTypes
+          ? [join(dir, "types.cts")]
+          : []),
       ],
       { cwd: dir },
     );
     results.push({
       kind: "installation",
       manager,
+      packageName,
       scripts: false,
       types: true,
       ok: true,
@@ -203,11 +249,20 @@ try {
   const omitCheck = `try { require('@qwqo/node-pty').spawn(${JSON.stringify(process.platform === "win32" ? "cmd.exe" : "/bin/sh")}, []); process.exit(1); } catch (e) { if (e.code !== 'ERR_PTY_MISSING_PACKAGE') throw e; }`;
   run(process.execPath, ["-e", omitCheck], { cwd: omitted });
   results.push({ kind: "omit-optional", ok: true });
-  const dir = join(work, "npm");
+  const runtimePackage = packageNames.at(-1);
+  const dir = join(
+    work,
+    runtimePackage === config.package ? "npm" : "npm-alias",
+  );
   for (const nodeVersion of runtimeConfig.node) {
     if (process.env.CURRENT_NODE_ONLY === "1") {
       await execute(process.execPath, [join(dir, "smoke.js")], { cwd: dir });
-      results.push({ kind: "node", version: process.versions.node, ok: true });
+      results.push({
+        kind: "node",
+        version: process.versions.node,
+        packageName: runtimePackage,
+        ok: true,
+      });
       continue;
     }
     const runtime = join(work, `node-${nodeVersion}`);
@@ -225,12 +280,17 @@ try {
       process.platform === "win32" ? "node.exe" : "node",
     );
     await execute(binary, [join(dir, "smoke.js")], { cwd: dir });
-    results.push({ kind: "node", version: nodeVersion, ok: true });
+    results.push({
+      kind: "node",
+      version: nodeVersion,
+      packageName: runtimePackage,
+      ok: true,
+    });
   }
   // A real app.asar plus unpacked full native packages exercises workers and helpers.
   const asar = join(work, "app.asar");
   await createPackageWithOptions(dir, asar, {
-    unpackDir: "node_modules/@qwqo{,/**}",
+    unpackDir: "node_modules/{node-pty,@qwqo}{,/**}",
   });
   for (const electronVersion of runtimeConfig.electron) {
     const runtime = join(work, `electron-${electronVersion}`);
@@ -258,6 +318,7 @@ try {
         kind: "electron",
         version: electronVersion,
         asar: app === asar,
+        packageName: runtimePackage,
         ok: true,
       });
     }
