@@ -303,6 +303,9 @@ async function main() {
             candidate.publication.revision,
           ),
         });
+        // Pin while this commit is still current: GITHUB_TOKEN cannot create
+        // a new ref for an old commit whose workflows differ from main.
+        await publicationRef(candidate.runId);
         candidate.state = "building";
         slots--;
       } else if (candidate.state === "built") {
