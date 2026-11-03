@@ -10,6 +10,7 @@ import {
 import {
   buildRunName,
   candidatePublication,
+  candidateRecipe,
   candidateState,
   selectPublication,
 } from "../scripts/sync.ts";
@@ -29,6 +30,24 @@ function record(upstream: string, revision = 0, recipe = "recipe") {
     },
   };
 }
+
+test("adapting another tag preserves published artifacts until a rebuild is requested", () => {
+  const tag = { tag: "v1.1.0", version: "1.1.0", sha: "1.1.0" };
+  const existing = record("1.1.0", 1, "verified-recipe");
+  const versions = { [existing.version]: existing };
+  assert.equal(
+    candidateRecipe(tag, versions, "new-adapter"),
+    "verified-recipe",
+  );
+  assert.equal(
+    candidateRecipe(tag, versions, "new-adapter", true),
+    "new-adapter",
+  );
+  assert.equal(candidateRecipe(tag, {}, "new-adapter"), "new-adapter");
+  assert.throws(() =>
+    candidateRecipe({ ...tag, sha: "moved" }, versions, "new"),
+  );
+});
 
 test("multiple completed candidates wait behind the active publication without replacing pending runs", () => {
   const candidates = [

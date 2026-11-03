@@ -109,7 +109,9 @@ CI runs real Electron main processes from both a directory and ASAR. macOS `spaw
 
 Detection compares the complete tag set every 15 minutes and after builds/publications complete. New tags are pinned before dispatch. Each selected tag gets its own source diff, recipe fingerprint, revision and build. Diff bases follow the stable line or the same prerelease series. Native, runtime JS, types, build configuration and CI changes are recorded separately in the plan artifact.
 
-The queue runs at most two candidate builds at once. Successful matching recipes are reused. A changed artifact recipe allocates the next downstream revision. A supported runtime update retests published stable and beta tarballs. Failed builds and partial publications retain their original run IDs for retry. Out-of-order completions publish historical versions while preserving the highest verified stable and beta channel targets.
+The queue runs at most two candidate builds at once. Successful matching recipes are reused. Published source versions keep their verified recipe when adapters for other tags change. To rebuild an existing source version, list its tag in `sync.rebuildTags`; a changed recipe allocates the next downstream revision. Remove the tag after the rebuild. A supported runtime update retests published stable and beta tarballs. Failed builds and partial publications retain their original run IDs for retry. Out-of-order completions publish historical versions while preserving the highest verified stable and beta channel targets.
+
+The `beta.4` and `beta.5` Linux/Android builds backport upstream commit `ac22bd8937fc3671687093123fce2a3104c4af7a`'s missing-constant guard for older libc headers. The adapter accepts only their exact source SHAs and records the source file's before/after hashes in each affected platform package.
 
 - `test.yml` runs ESLint, Prettier, TypeScript and policy tests.
 - `build.yml` builds native assets, compiles the main package and verifies desktop, musl and Android targets before assembling a bundle.

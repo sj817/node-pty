@@ -59,6 +59,25 @@ export function candidatePublication(
   return publicationFor(tag.version, revision, config.versioning.reserved);
 }
 
+export function candidateRecipe(
+  tag,
+  versions,
+  current: string,
+  rebuild = false,
+) {
+  if (rebuild) return current;
+  const previous = Object.values(versions as Record<string, PublishedRecord>)
+    .filter(
+      (record) =>
+        record.nodePty?.release?.mode === "release" &&
+        record.nodePty.upstream.version === tag.version,
+    )
+    .sort((a, b) => b.nodePty.release.revision - a.nodePty.release.revision);
+  if (previous.some((record) => record.nodePty.upstream.sha !== tag.sha))
+    throw new Error(`Conflicting upstream SHA for ${tag.tag}`);
+  return previous[0]?.nodePty.recipeKey || current;
+}
+
 export function buildRunName(key: string, revision: number): string {
   return `build-${key}-r${revision}`;
 }
@@ -258,7 +277,12 @@ async function main() {
   ]);
   const candidates = detection.candidates
     .map((tag): SyncCandidate => {
-      const key = recipeKey(tag);
+      const key = candidateRecipe(
+        tag,
+        registry.versions,
+        recipeKey(tag),
+        config.sync.rebuildTags?.includes(tag.tag),
+      );
       const publication = candidatePublication(tag, registry.versions, key);
       const candidate = { ...tag, recipeKey: key, publication };
       if (!tag.ready || tag.api !== "node-api")
