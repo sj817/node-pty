@@ -19,7 +19,11 @@ The early `0.0.x` versions are historical test builds. npm permanently reserves 
 ```ts
 import * as pty from "@qwqo/node-pty";
 
-const shell = process.platform === "win32" ? "cmd.exe" : "/bin/sh";
+const shell =
+  process.platform === "win32"
+    ? "cmd.exe"
+    : process.env.SHELL ||
+      (process.platform === "android" ? "/system/bin/sh" : "/bin/sh");
 const terminal = pty.spawn(shell, [], {
   cols: 80,
   rows: 24,
@@ -45,6 +49,8 @@ The main tarball contains the upstream JS implementation, public types and platf
 The publisher checks out the successful build's original repository commit and verifies its source identity, version mapping and tarball checksums. Registry conflicts, moved source tags and incomplete target verification stop publication. Failed uploads can be retried from the original publication run using the same immutable bundle.
 
 Publication runs use an immutable `ci/<build-commit>` Git ref. npm provenance therefore identifies the same commit that built the tarballs, including when newer tags arrive while an older candidate is still running.
+
+Finish in-flight publications before changing workflow files. GitHub checks workflow-file permissions when creating releases for commits whose workflows differ from the default branch; see the [release API requirements](https://docs.github.com/en/rest/releases/releases#create-a-release).
 
 GitHub releases are titled `node-pty`. Assets use names such as `node-pty.tgz`, `node-pty-darwin-arm64.tgz`, `node-pty-linux-x64-musl.tgz` and `node-pty-android-arm64.tgz`. Version information lives in package metadata, the Git tag and `release-manifest.json`. npm controls its own registry download URLs.
 
@@ -80,7 +86,7 @@ These are configured targets. Each release manifest records which runtimes actua
 
 Every published suffix is prefixed with `@qwqo/node-pty-`. Linux manifests specify `libc`. Android x64 stays outside the npm release set until target verification exists. Electron binaries are validated on its desktop platforms. Android and native musl currently use Node-only verification.
 
-The current adapter uses Node-API 8 and Node 22.14+ synchronous ESM loading. Node's own OS and libc requirements also apply. Lowering the addon's glibc baseline cannot lower the Node executable's requirements. Container image digests and configuration are pinned in `release.json`. C++ runtime libraries are linked statically on Linux to avoid importing a newer host libstdc++ requirement.
+The current adapter uses Node-API 8 and Node 22.14+ synchronous ESM loading. The addon is built for the baselines above. Node and Electron also impose their own OS and library requirements. Electron runs on the configured hosted desktop runners; the glibc 2.28 container verifies addon loading with Node. Container image digests and configuration are pinned in `release.json`. C++ runtime libraries are linked statically on Linux to avoid importing a newer host libstdc++ requirement.
 
 Node and Electron share one binary for a supported OS, architecture and libc when the selected source uses Node-API. Each combination is still tested with actual runtime versions. Older upstream sources using NAN/V8 require separate ABI adapters.
 
@@ -88,7 +94,7 @@ Node and Electron share one binary for a supported OS, architecture and libc whe
 
 Repository scripts, tests, loaders and generated JS use ESM. Native `.node` loading uses Node's `createRequire`. Node 22.14+ callers can also load the synchronous ESM public API with `require()`.
 
-Version `0.0.4` adds default-import compatibility alongside named imports. The earlier `0.0.2` and `0.0.3` test versions support named imports and `require()`.
+Default imports, named imports and synchronous `require()` expose the upstream API.
 
 Keep the package external to bundlers and unpack the complete main and platform packages from ASAR, including worker JS, `.node` modules, helpers and DLLs. An electron-builder configuration is
 
