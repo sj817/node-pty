@@ -9,6 +9,7 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import { adaptUpstream, compileEsm } from "./adapt.ts";
+import { adaptNativeSource } from "./native-adapter.ts";
 import {
   buildKey,
   config,
@@ -74,9 +75,22 @@ run(
     "binding.gyp",
     "package-lock.json",
     "src/tsconfig.json",
+    "src/unix/pty.cc",
   ],
   { cwd: source },
 );
+
+const nativePatches = [];
+if (kind === "native") {
+  const path = join(source, "src/unix/pty.cc");
+  const adapted = adaptNativeSource(
+    readFileSync(path, "utf8"),
+    config.upstream.sha,
+    platform.os,
+  );
+  if (adapted.patches.length) writeFileSync(path, adapted.source);
+  nativePatches.push(...adapted.patches);
+}
 
 const lock = readJson(join(source, "package-lock.json"));
 // The pinned upstream lock omitted chokidar's optional macOS dependency.
@@ -110,6 +124,7 @@ const metadata = {
   napi: config.napi,
   buildKey: key,
   features,
+  nativePatches,
 };
 const base = {
   version,

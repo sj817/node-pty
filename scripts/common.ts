@@ -99,6 +99,7 @@ export function recipeKey(upstream = config.upstream) {
     "scripts/build.ts",
     "scripts/container.ts",
     "scripts/adapt.ts",
+    "scripts/native-adapter.ts",
     "scripts/common.ts",
     "scripts/version.ts",
     "runtime/loader.ts",
